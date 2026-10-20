@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '../components/ui/ToastProvider';
 import type { Activity, ActivityStatus, Discipline } from '../domain/types';
 import { navigate, paths } from '../router';
@@ -13,6 +14,7 @@ export function useStudyCommands() {
   const { data, actions } = useStudy();
   const { showToast } = useToast();
   const { confirm, closeModal } = useUI();
+  const auth = useAuth();
 
   const setStatus = useCallback(
     (activity: Activity, status: ActivityStatus) => {
@@ -118,8 +120,23 @@ export function useStudyCommands() {
     return true;
   }, [actions, closeModal, confirm, showToast]);
 
+  const logout = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Sair da conta?',
+      message: <p>Seus dados continuam salvos neste aparelho. Para voltar, entre com seu e-mail ou CPF e senha.</p>,
+      confirmLabel: 'Sair',
+      tone: 'primary',
+    });
+    if (!ok) return false;
+    closeModal();
+    await auth.logout();
+    navigate(paths.overview, { replace: true });
+    showToast('Você saiu da sua conta.', { tone: 'info' });
+    return true;
+  }, [auth, closeModal, confirm, showToast]);
+
   return useMemo(
-    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData }),
-    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData],
+    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData, logout }),
+    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData, logout],
   );
 }

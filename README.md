@@ -24,6 +24,25 @@ A pasta `dist/` pode ser publicada em qualquer hospedagem de site estático (Git
 inclusive em subpastas: os caminhos são relativos e a navegação usa `#/` no endereço, então não é preciso
 configurar o servidor.
 
+## Acesso
+
+Ao abrir o painel, aparece a tela de acesso com a marca Evolua. Na primeira vez, a pessoa clica em
+**Criar acesso** e informa e-mail, CPF (validado pelos dígitos verificadores) e uma senha (mínimo de 8
+caracteres, com letras e números). Depois, entra com **e-mail ou CPF** e a senha.
+
+- **Manter conectado neste aparelho:** marcado, o acesso continua ao fechar o navegador; desmarcado, vale
+  só até fechar a aba.
+- **Esqueci minha senha:** cria uma nova senha conferindo o e-mail e o CPF cadastrados.
+- **Sair da conta:** fica no rodapé do menu lateral (computador) e em Configurações (celular).
+- Cada conta tem os próprios dados. Se alguém já usava o painel antes do acesso existir, a primeira conta
+  criada no aparelho fica com esses dados.
+
+**Como funciona por baixo:** as contas ficam guardadas neste navegador. A senha e o CPF são salvos apenas
+como *hash* PBKDF2-SHA-256 com sal aleatório, nunca em texto puro. Isso organiza o acesso de quem usa o
+mesmo aparelho, mas **não é um controle de acesso pela internet**: qualquer pessoa pode criar uma conta no
+próprio navegador, e quem tem conhecimento técnico consegue contornar a tela. Para liberar o acesso só a
+pessoas autorizadas, e para entrar de qualquer aparelho, é preciso um servidor (veja abaixo).
+
 ## O que o sistema faz
 
 | Página | Para que serve |
@@ -73,32 +92,37 @@ quando começa uma atividade.
 
 ## Onde ficam os dados
 
-Nesta versão, tudo é salvo automaticamente no **armazenamento local do navegador** (`localStorage`). Os dados
-continuam lá ao fechar ou atualizar a página, mas **ficam só naquele navegador, naquele aparelho**: não
-aparecem no celular se você usou no computador, e são apagados se você limpar os dados de navegação.
-Não há login nem banco de dados.
+Nesta versão, tudo é salvo automaticamente no **armazenamento local do navegador** (`localStorage`), separado
+por conta. Os dados continuam lá ao fechar ou atualizar a página, mas **ficam só naquele navegador, naquele
+aparelho**: não aparecem no celular se você usou no computador, e são apagados se você limpar os dados de
+navegação. Não há servidor nem banco de dados.
 
-Os dados iniciais (duas disciplinas com quatro atividades cada) são gravados apenas na primeira visita e nunca
-são duplicados. O botão **Restaurar dados iniciais**, em Configurações, volta a esse estado depois de pedir
+Os dados iniciais (duas disciplinas com quatro atividades cada) são gravados uma única vez para cada conta e
+nunca são duplicados. O botão **Restaurar dados iniciais**, em Configurações, volta a esse estado depois de pedir
 confirmação.
 
-### Preparado para banco de dados
+### Preparado para servidor e banco de dados
 
-Toda a leitura e gravação passa pela interface `StudyRepository` (`src/data/repository.ts`). Para guardar os
-dados em um servidor (e sincronizar entre aparelhos), crie outra implementação dessa interface — por exemplo,
-chamando uma API com autenticação — e troque-a em `src/data/index.ts`. Telas e regras de negócio não precisam
-mudar.
+- **Dados de estudo:** toda leitura e gravação passa pela interface `StudyRepository`
+  (`src/data/repository.ts`). Para guardar em um servidor, crie outra implementação e troque-a em
+  `src/data/index.ts`.
+- **Acesso:** cadastro, entrada, saída e redefinição de senha passam pela interface `AuthService`
+  (`src/auth/types.ts`). Para contas na internet (por exemplo, com Supabase ou Firebase), crie outra
+  implementação e troque-a em `src/auth/index.ts`.
+
+Telas e regras de negócio não precisam mudar.
 
 ## Estrutura do código
 
 ```
 src/
+├── auth/          Acesso: cadastro, entrada, CPF, senha protegida e tela de acesso
 ├── domain/        Regras puras: tipos, datas, urgência, filtros, progresso, dados iniciais
 ├── data/          Persistência (interface StudyRepository + implementação localStorage)
 ├── state/         Estado da aplicação (reducer), ações com confirmação/avisos e janelas
 ├── components/    Componentes reutilizáveis (atividades, disciplinas, layout, interface)
 ├── pages/         Uma tela por item do menu
-├── hooks/         Relógio (data de hoje) e preferências
+├── hooks/         Relógio (data de hoje)
 └── styles/        Tokens de design e estilos
 e2e/               Testes de ponta a ponta no navegador
 ```
@@ -106,11 +130,12 @@ e2e/               Testes de ponta a ponta no navegador
 ## Testes
 
 ```bash
-npm test           # testes unitários (datas, urgência, progresso, filtros, persistência)
+npm test           # testes unitários (datas, urgência, progresso, filtros, persistência, acesso)
 npm run test:e2e   # testes no navegador, em tela de computador e de celular
 ```
 
 Os testes de ponta a ponta simulam datas diferentes para conferir prazos vencidos e a virada do dia, e cobrem
-cadastro, edição, exclusão, conclusão e reabertura de atividades, cálculo de porcentagens, filtros, calendário
-e persistência. Na primeira execução local, instale o navegador do Playwright com
+cadastro, edição, exclusão, conclusão e reabertura de atividades, cálculo de porcentagens, filtros, calendário,
+persistência e o acesso (cadastro, entrada por e-mail ou CPF, senha errada, contas separadas e redefinição
+de senha). Na primeira execução local, instale o navegador do Playwright com
 `npx playwright install chromium`.

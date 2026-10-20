@@ -17,8 +17,8 @@ import { EmptyState, PageHeader, ProgressBar, Section } from '../components/ui/p
 import { compareByUrgency, isCompleted, isDueSoon, isOverdue } from '../domain/activities';
 import { formatLongDate } from '../domain/dates';
 import { computeProgress, formatPercent } from '../domain/progress';
-import { usePreferences } from '../hooks/usePreferences';
 import { paths } from '../router';
+import { useCurrentUser } from '../auth/AuthProvider';
 import { useStudy } from '../state/StudyProvider';
 import { useUI } from '../state/UIProvider';
 
@@ -34,7 +34,7 @@ function greeting(hour: number): string {
 
 export function OverviewPage() {
   const { data, today, hour } = useStudy();
-  const { userName } = usePreferences();
+  const user = useCurrentUser();
   const { openNewActivity, openNewDiscipline } = useUI();
 
   const summary = useMemo(() => {
@@ -56,7 +56,7 @@ export function OverviewPage() {
   }, [data.activities, today]);
 
   const { progress } = summary;
-  const name = userName.trim();
+  const name = user.name.trim().split(/\s+/)[0] ?? '';
 
   return (
     <div className="page overview">

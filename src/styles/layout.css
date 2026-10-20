@@ -314,3 +314,50 @@
     margin: var(--space-3) var(--space-4) 0;
   }
 }
+
+/* ---------- Conta conectada (menu lateral) ---------- */
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-1) 0 var(--space-3);
+}
+
+.sidebar__avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sidebar__user-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.sidebar__user-text strong,
+.sidebar__user-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__user-text strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.sidebar__user-text small {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

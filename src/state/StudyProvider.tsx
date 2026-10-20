@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { createRepository, type StudyRepository } from '../data';
+import type { StudyRepository } from '../data';
 import { todayISO } from '../domain/dates';
 import { createSeedData } from '../domain/seed';
 import type {
@@ -45,14 +45,7 @@ const StudyContext = createContext<StudyContextValue | null>(null);
 const STORAGE_ERROR_MESSAGE =
   'Não foi possível salvar no navegador. Suas alterações valem só enquanto esta página estiver aberta.';
 
-export function StudyProvider({
-  children,
-  repository,
-}: {
-  children: ReactNode;
-  repository?: StudyRepository;
-}) {
-  const repo = useMemo(() => repository ?? createRepository(), [repository]);
+export function StudyProvider({ children, repository: repo }: { children: ReactNode; repository: StudyRepository }) {
   const [data, dispatch] = useReducer(studyReducer, EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [storageError, setStorageError] = useState<string | null>(null);

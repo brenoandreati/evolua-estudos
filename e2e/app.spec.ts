@@ -1,10 +1,47 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** Fixa "hoje" no horário de Brasília para os testes serem previsíveis. */
+const ANA = { name: 'Ana Souza', email: 'ana@email.com', cpf: '529.982.247-25', password: 'estudos2026' };
+const BIA = { name: 'Bia Lima', email: 'bia@email.com', cpf: '111.444.777-35', password: 'aprender123' };
+type TestUser = typeof ANA;
+
+async function waitForPanel(page: Page) {
+  await expect(page.locator('.content')).toBeVisible();
+  await expect(page.getByText('Carregando seu painel…')).toHaveCount(0);
+}
+
+async function signUp(page: Page, user: TestUser = ANA, options: { remember?: boolean } = {}) {
+  await page.getByRole('tab', { name: 'Criar acesso' }).click();
+  await page.getByLabel('Nome').fill(user.name);
+  await page.getByLabel(/^E-mail \*/).fill(user.email);
+  await page.getByLabel(/^CPF \*/).fill(user.cpf);
+  await page.getByLabel(/^Senha \*/).fill(user.password);
+  await page.getByLabel('Confirme a senha').fill(user.password);
+  if (options.remember === false) await page.getByLabel('Manter conectado neste aparelho').uncheck();
+  await page.getByRole('button', { name: 'Criar acesso e entrar' }).click();
+  await waitForPanel(page);
+}
+
+async function logIn(page: Page, identifier: string, password: string) {
+  await page.getByLabel('E-mail ou CPF').fill(identifier);
+  await page.getByLabel('Senha', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+}
+
+async function logOut(page: Page) {
+  const direct = page.getByRole('button', { name: 'Sair da conta' }).locator('visible=true');
+  if ((await direct.count()) === 0) {
+    await page.getByRole('button', { name: 'Configurações' }).locator('visible=true').first().click();
+  }
+  await page.getByRole('button', { name: 'Sair da conta' }).locator('visible=true').first().click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Sair', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+}
+
+/** Fixa "hoje" no horário de Brasília, cria uma conta e abre a página pedida. */
 async function openAt(page: Page, isoDateTime: string, hash = '#/') {
   await page.clock.setFixedTime(new Date(isoDateTime));
   await page.goto(`/${hash}`);
-  await expect(page.getByText('Carregando seu painel…')).toHaveCount(0);
+  await signUp(page);
 }
 
 const DAY_ONE = '2026-10-20T10:00:00-03:00';
@@ -336,4 +373,100 @@ test('navegação principal funciona em todas as páginas', async ({ page }) => 
   await page.goto('/#/');
   await page.getByTestId('discipline-card').first().click();
   await expect(page.getByRole('heading', { level: 1, name: 'Hidráulica e Pneumática' })).toBeVisible();
+});
+
+test.describe('Acesso', () => {
+  test('tela de acesso com a marca, validação do cadastro e entrada no painel', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(DAY_ONE));
+    await page.goto('/');
+    await expect(page.getByText('Evolua Meus Estudos').locator('visible=true').first()).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Criar acesso' }).click();
+    await page.getByLabel(/^E-mail \*/).fill('ana@email');
+    await page.getByLabel(/^CPF \*/).fill('123.456.789-00');
+    await page.getByLabel(/^Senha \*/).fill('abc');
+    await page.getByLabel('Confirme a senha').fill('abcd');
+    await page.getByRole('button', { name: 'Criar acesso e entrar' }).click();
+    await expect(page.getByText('Informe um e-mail válido.')).toBeVisible();
+    await expect(page.getByText('CPF inválido. Confira os números.')).toBeVisible();
+    await expect(page.getByText('Mínimo de 8 caracteres, com letras e números.')).toBeVisible();
+    await expect(page.getByText('As senhas não conferem.')).toBeVisible();
+
+    // Máscara do CPF enquanto digita
+    await page.getByLabel(/^CPF \*/).fill('52998224725');
+    await expect(page.getByLabel(/^CPF \*/)).toHaveValue('529.982.247-25');
+
+    await page.getByRole('tab', { name: 'Entrar' }).click();
+    await signUp(page);
+    await expect(page.getByRole('heading', { level: 1, name: 'Bom dia, Ana!' })).toBeVisible();
+  });
+
+  test('sair, senha errada, entrar pelo CPF e manter os dados', async ({ page }) => {
+    await openAt(page, DAY_ONE, '#/atividades');
+    await completeActivity(page, 'Videoaulas e exercícios', 'Hidráulica');
+    await logOut(page);
+
+    await logIn(page, ANA.email, 'senhaErrada1');
+    await expect(page.getByText('E-mail/CPF ou senha incorretos.')).toBeVisible();
+
+    await logIn(page, '52998224725', ANA.password);
+    await waitForPanel(page);
+    await expect(page.getByTestId('overall-percent')).toHaveText('13%');
+
+    // Recarregar não pede login de novo ("manter conectado")
+    await page.reload();
+    await waitForPanel(page);
+    await expect(page.getByTestId('overall-percent')).toHaveText('13%');
+  });
+
+  test('cada conta tem os próprios dados', async ({ page }) => {
+    await openAt(page, DAY_ONE, '#/atividades');
+    await completeActivity(page, 'Videoaulas e exercícios', 'Hidráulica');
+    await logOut(page);
+
+    await signUp(page, BIA);
+    await expect(page.getByTestId('overall-percent')).toHaveText('0%');
+    await expect(page.getByRole('heading', { level: 1, name: 'Bom dia, Bia!' })).toBeVisible();
+    await logOut(page);
+
+    await page.getByRole('tab', { name: 'Criar acesso' }).click();
+    await page.getByLabel(/^E-mail \*/).fill(ANA.email);
+    await page.getByLabel(/^CPF \*/).fill(BIA.cpf);
+    await page.getByLabel(/^Senha \*/).fill('qualquer123');
+    await page.getByLabel('Confirme a senha').fill('qualquer123');
+    await page.getByRole('button', { name: 'Criar acesso e entrar' }).click();
+    await expect(page.getByText('Já existe uma conta com este e-mail neste aparelho.')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Entrar' }).click();
+    await logIn(page, ANA.email, ANA.password);
+    await waitForPanel(page);
+    await expect(page.getByTestId('overall-percent')).toHaveText('13%');
+  });
+
+  test('redefinir senha com e-mail e CPF', async ({ page }) => {
+    await openAt(page, DAY_ONE);
+    await logOut(page);
+    await page.getByRole('button', { name: 'Esqueci minha senha' }).click();
+    await page.getByLabel('E-mail cadastrado').fill(ANA.email);
+    await page.getByLabel('CPF cadastrado').fill(ANA.cpf);
+    await page.getByLabel(/^Nova senha/).fill('novaSenha2026');
+    await page.getByLabel('Confirme a nova senha').fill('novaSenha2026');
+    await page.getByRole('button', { name: 'Redefinir senha' }).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+    await expect(page.getByLabel('E-mail ou CPF')).toHaveValue(ANA.email);
+    await logIn(page, ANA.email, 'novaSenha2026');
+    await waitForPanel(page);
+  });
+
+  test('sem "manter conectado", uma nova aba pede login', async ({ page, context }) => {
+    await page.clock.setFixedTime(new Date(DAY_ONE));
+    await page.goto('/');
+    await signUp(page, ANA, { remember: false });
+
+    const other = await context.newPage();
+    await other.goto('/');
+    await expect(other.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+  });
 });

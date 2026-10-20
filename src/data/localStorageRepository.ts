@@ -4,6 +4,28 @@ import { parseStudyData } from './schema';
 
 export const STORAGE_KEY = 'evolua-estudos:dados:v1';
 
+/** Chave dos dados de estudo de cada conta. */
+export function storageKeyFor(userId: string): string {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
+/**
+ * Dados salvos antes do acesso por login ficavam numa chave sem conta.
+ * A primeira conta criada no aparelho passa a ser dona deles.
+ */
+export function adoptLegacyData(userId: string, storage: Storage | undefined = globalThis.localStorage): void {
+  try {
+    const legacy = storage?.getItem(STORAGE_KEY);
+    const target = storageKeyFor(userId);
+    if (storage && legacy != null && storage.getItem(target) === null) {
+      storage.setItem(target, legacy);
+      storage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // Sem acesso ao armazenamento: a conta começa com os dados iniciais.
+  }
+}
+
 /** Persistência no `localStorage` do navegador. */
 export class LocalStorageRepository implements StudyRepository {
   constructor(

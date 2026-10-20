@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { AuthScreen } from './auth/AuthScreen';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingScreen } from './components/ui/primitives';
 import { ToastProvider } from './components/ui/ToastProvider';
 import { ActivitiesPage } from './pages/ActivitiesPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { createRepository } from './data';
 import { CompletedPage } from './pages/CompletedPage';
 import { DisciplineDetailPage } from './pages/DisciplineDetailPage';
 import { DisciplinesPage } from './pages/DisciplinesPage';
@@ -63,14 +66,31 @@ function Screens() {
   );
 }
 
+/** Área logada: cada conta tem os próprios dados de estudo. */
+function SignedInApp({ userId }: { userId: string }) {
+  const repository = useMemo(() => createRepository(userId), [userId]);
+  return (
+    <StudyProvider repository={repository}>
+      <UIProvider>
+        <Screens />
+      </UIProvider>
+    </StudyProvider>
+  );
+}
+
+function AccessGate() {
+  const { state } = useAuth();
+  if (state.status === 'loading') return <LoadingScreen />;
+  if (state.status === 'signedOut') return <AuthScreen />;
+  return <SignedInApp key={state.user.id} userId={state.user.id} />;
+}
+
 export function App() {
   return (
     <ToastProvider>
-      <StudyProvider>
-        <UIProvider>
-          <Screens />
-        </UIProvider>
-      </StudyProvider>
+      <AuthProvider>
+        <AccessGate />
+      </AuthProvider>
     </ToastProvider>
   );
 }

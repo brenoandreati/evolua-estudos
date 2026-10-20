@@ -1,23 +1,28 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { HardDrive, RotateCcw } from 'lucide-react';
-import { setPreferences, usePreferences } from '../../hooks/usePreferences';
+import { HardDrive, LogOut, RotateCcw, UserRound } from 'lucide-react';
+import { useAuth, useCurrentUser } from '../../auth/AuthProvider';
 import { useStudyCommands } from '../../state/useStudyCommands';
 import { Field } from '../ui/Field';
 import { Modal } from '../ui/Modal';
 import { useToast } from '../ui/ToastProvider';
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
-  const preferences = usePreferences();
-  const { restoreInitialData } = useStudyCommands();
+  const user = useCurrentUser();
+  const { updateProfile } = useAuth();
+  const { restoreInitialData, logout } = useStudyCommands();
   const { showToast } = useToast();
-  const [name, setName] = useState(preferences.userName);
+  const [name, setName] = useState(user.name);
 
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setPreferences({ userName: name.trim() });
-    showToast('Preferências salvas.');
-    onClose();
+    try {
+      await updateProfile({ name });
+      showToast('Preferências salvas.');
+      onClose();
+    } catch {
+      showToast('Não foi possível salvar. Tente novamente.', { tone: 'error' });
+    }
   };
 
   return (
@@ -44,7 +49,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Seu nome"
-            maxLength={40}
+            maxLength={60}
             data-autofocus
           />
         </Field>
@@ -52,12 +57,32 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
       <div className="settings-block">
         <h3 className="settings-block__title">
+          <UserRound size={16} aria-hidden /> Sua conta
+        </h3>
+        <dl className="settings-account">
+          <div>
+            <dt>E-mail</dt>
+            <dd>{user.email}</dd>
+          </div>
+          <div>
+            <dt>CPF</dt>
+            <dd>{user.cpfMasked}</dd>
+          </div>
+        </dl>
+        <button type="button" className="button button--secondary" onClick={() => void logout()}>
+          <LogOut size={16} aria-hidden />
+          Sair da conta
+        </button>
+      </div>
+
+      <div className="settings-block">
+        <h3 className="settings-block__title">
           <HardDrive size={16} aria-hidden /> Onde ficam seus dados
         </h3>
         <p className="settings-block__text">
-          Tudo é salvo automaticamente neste navegador, neste aparelho. Os dados continuam aqui ao fechar ou
-          atualizar a página, mas não aparecem em outros aparelhos e são apagados se você limpar os dados de
-          navegação.
+          Sua conta e suas atividades ficam salvas automaticamente neste navegador, neste aparelho. Os dados
+          continuam aqui ao fechar ou atualizar a página, mas não aparecem em outros aparelhos e são apagados se
+          você limpar os dados de navegação.
         </p>
       </div>
 
@@ -66,7 +91,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           <RotateCcw size={16} aria-hidden /> Restaurar dados iniciais
         </h3>
         <p className="settings-block__text">
-          Volta às duas disciplinas e oito atividades originais. Os dados atuais serão substituídos.
+          Volta às duas disciplinas e oito atividades originais. Os dados atuais desta conta serão substituídos.
         </p>
         <button type="button" className="button button--danger-outline" onClick={() => void restoreInitialData()}>
           Restaurar dados iniciais

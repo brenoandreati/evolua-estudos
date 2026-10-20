@@ -6,15 +6,18 @@ import {
   CircleCheckBig,
   LayoutDashboard,
   ListChecks,
+  LogOut,
   Plus,
   Search,
   Settings,
   TriangleAlert,
 } from 'lucide-react';
+import { useCurrentUser } from '../../auth/AuthProvider';
 import { isOverdue } from '../../domain/activities';
 import { navigate, paths, type Route } from '../../router';
 import { useStudy } from '../../state/StudyProvider';
 import { useUI } from '../../state/UIProvider';
+import { useStudyCommands } from '../../state/useStudyCommands';
 import { Logo } from '../brand/Logo';
 import { AttentionBell } from './AttentionBell';
 
@@ -33,6 +36,8 @@ function activeKey(route: Route): string {
 export function AppShell({ route, children }: { route: Route; children: ReactNode }) {
   const { data, today, storageError } = useStudy();
   const { openNewActivity, openSettings } = useUI();
+  const { logout } = useStudyCommands();
+  const user = useCurrentUser();
   const current = activeKey(route);
   const overdueCount = data.activities.filter((a) => isOverdue(a, today)).length;
 
@@ -72,6 +77,24 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
             <Settings size={19} aria-hidden />
             <span>Configurações</span>
           </button>
+          <div className="sidebar__user">
+            <span className="sidebar__avatar" aria-hidden>
+              {(user.name.trim() || user.email).charAt(0).toUpperCase()}
+            </span>
+            <span className="sidebar__user-text">
+              <strong>{user.name.trim() || 'Minha conta'}</strong>
+              <small>{user.email}</small>
+            </span>
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => void logout()}
+              aria-label="Sair da conta"
+              title="Sair da conta"
+            >
+              <LogOut size={18} aria-hidden />
+            </button>
+          </div>
         </div>
       </aside>
 
