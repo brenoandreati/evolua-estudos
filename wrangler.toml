@@ -1,0 +1,13 @@
+# Configuração da Cloudflare Pages (site + funções do servidor + banco D1).
+name = "evolua-meus-estudos"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "evolua-meus-estudos"
+database_id = "d399ff16-72b7-4cbb-a185-68ce50ca5e7b"
+migrations_dir = "migrations"
+
+# GOOGLE_CLIENT_ID (opcional) é configurado no painel da Cloudflare:
+# Pages > evolua-meus-estudos > Configurações > Variáveis e segredos.

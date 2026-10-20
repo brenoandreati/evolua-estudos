@@ -1,22 +1,23 @@
-import { AuthError } from './types';
+import { api } from '../api/client';
 
 /**
  * Login com Google (Google Identity Services).
  *
- * Só fica ativo quando o site tem um Client ID do Google configurado em
- * `VITE_GOOGLE_CLIENT_ID` (veja o README). Sem ele, o botão não aparece.
+ * O botão só aparece quando o servidor tem um Client ID do Google configurado
+ * (variável GOOGLE_CLIENT_ID na Cloudflare — veja o README). A credencial
+ * devolvida pelo Google é conferida pelo servidor.
  */
-export const GOOGLE_CLIENT_ID: string = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
 
-export function isGoogleEnabled(): boolean {
-  return GOOGLE_CLIENT_ID.length > 0;
-}
+let clientIdPromise: Promise<string | null> | null = null;
 
-export interface GoogleProfile {
-  sub: string;
-  email: string;
-  name: string;
-  givenName: string;
+export function getGoogleClientId(): Promise<string | null> {
+  clientIdPromise ??= api<{ googleClientId: string | null }>('/api/config')
+    .then((config) => config.googleClientId)
+    .catch(() => {
+      clientIdPromise = null;
+      return null;
+    });
+  return clientIdPromise;
 }
 
 interface GoogleIdApi {
@@ -71,43 +72,4 @@ export function loadGoogleIdentity(): Promise<GoogleIdApi> {
     document.head.appendChild(script);
   });
   return scriptPromise;
-}
-
-function decodeBase64Url(part: string): string {
-  const base64 = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=');
-  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-/**
- * Lê a credencial (token JWT) devolvida pelo Google e confere para quem ela
- * foi emitida, quem emitiu, a validade e o e-mail verificado.
- *
- * Observação: a assinatura do token só pode ser verificada com segurança em
- * um servidor. Ao migrar para contas em servidor, valide o token lá.
- */
-export function parseGoogleCredential(
-  credential: string,
-  clientId: string = GOOGLE_CLIENT_ID,
-  now: number = Date.now(),
-): GoogleProfile {
-  const invalid = new AuthError('Não foi possível entrar com o Google. Tente novamente.');
-  let claims: Record<string, unknown>;
-  try {
-    claims = JSON.parse(decodeBase64Url(credential.split('.')[1] ?? ''));
-  } catch {
-    throw invalid;
-  }
-  if (!clientId || claims.aud !== clientId) throw invalid;
-  if (claims.iss !== 'accounts.google.com' && claims.iss !== 'https://accounts.google.com') throw invalid;
-  if (typeof claims.exp !== 'number' || claims.exp * 1000 < now) {
-    throw new AuthError('O login com o Google expirou. Tente novamente.');
-  }
-  if (typeof claims.sub !== 'string' || typeof claims.email !== 'string') throw invalid;
-  if (claims.email_verified !== true) {
-    throw new AuthError('Sua conta Google precisa ter o e-mail verificado.');
-  }
-  const name = typeof claims.name === 'string' ? claims.name : '';
-  const givenName = typeof claims.given_name === 'string' ? claims.given_name : name.split(' ')[0] ?? '';
-  return { sub: claims.sub, email: claims.email, name, givenName };
 }

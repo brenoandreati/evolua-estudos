@@ -28,12 +28,8 @@ export class AuthError extends Error {
 }
 
 /**
- * Contrato de acesso ao painel.
- *
- * A primeira versão (`LocalAuthService`) guarda as contas neste navegador.
- * Para usar contas na internet (com servidor e acesso de qualquer aparelho),
- * basta criar outra implementação desta interface e trocá-la em
- * `src/auth/index.ts`.
+ * Contrato de acesso ao painel. A implementação atual (`HttpAuthService`)
+ * conversa com o servidor na Cloudflare; as telas só conhecem esta interface.
  */
 export interface AuthService {
   currentUser(): Promise<User | null>;
@@ -42,7 +38,7 @@ export interface AuthService {
   /** Entra (ou cria a conta) com a credencial devolvida pelo botão do Google. */
   signInWithGoogle(credential: string, options: { remember: boolean }): Promise<User>;
   logout(): Promise<void>;
-  updateProfile(userId: string, profile: { name: string }): Promise<User>;
-  /** Avisa quando a sessão muda em outra aba. */
-  subscribe?(listener: () => void): () => void;
+  updateProfile(profile: { name: string }): Promise<User>;
+  /** Exclui a conta e todos os dados dela. */
+  deleteAccount(): Promise<void>;
 }

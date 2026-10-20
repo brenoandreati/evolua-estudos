@@ -3,7 +3,8 @@ import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthScreen } from './auth/AuthScreen';
 import { WelcomeSplash, markIntroShown, shouldShowIntro } from './components/brand/WelcomeSplash';
 import { AppShell } from './components/layout/AppShell';
-import { LoadingScreen } from './components/ui/primitives';
+import { CloudOff } from 'lucide-react';
+import { EmptyState, LoadingScreen } from './components/ui/primitives';
 import { ToastProvider } from './components/ui/ToastProvider';
 import { ActivitiesPage } from './pages/ActivitiesPage';
 import { CalendarPage } from './pages/CalendarPage';
@@ -46,7 +47,7 @@ function CurrentPage({ route }: { route: Route }) {
 
 function Screens() {
   const route = useRoute();
-  const { loading, data } = useStudy();
+  const { loading, loadError, retryLoad, data } = useStudy();
 
   const disciplineName =
     route.name === 'discipline' ? data.disciplines.find((d) => d.id === route.id)?.name : undefined;
@@ -62,14 +63,31 @@ function Screens() {
 
   return (
     <AppShell route={route}>
-      {loading ? <LoadingScreen /> : <CurrentPage route={route} />}
+      {loadError ? (
+        <div className="card">
+          <EmptyState
+            icon={CloudOff}
+            title="Não foi possível carregar seus dados"
+            description={loadError}
+            action={
+              <button type="button" className="button button--primary" onClick={retryLoad}>
+                Tentar de novo
+              </button>
+            }
+          />
+        </div>
+      ) : loading ? (
+        <LoadingScreen />
+      ) : (
+        <CurrentPage route={route} />
+      )}
     </AppShell>
   );
 }
 
 /** Área logada: cada conta tem os próprios dados de estudo. */
-function SignedInApp({ userId }: { userId: string }) {
-  const repository = useMemo(() => createRepository(userId), [userId]);
+function SignedInApp({ email }: { email: string }) {
+  const repository = useMemo(() => createRepository({ email }), [email]);
   return (
     <StudyProvider repository={repository}>
       <UIProvider>
@@ -95,10 +113,10 @@ function AccessGate() {
   const finishIntro = useCallback(() => setShowIntro(false), []);
 
   if (state.status === 'loading') return <LoadingScreen />;
-  if (state.status === 'signedOut') return <AuthScreen />;
+  if (state.status === 'signedOut') return <AuthScreen notice={state.reason} />;
   return (
     <>
-      <SignedInApp key={state.user.id} userId={state.user.id} />
+      <SignedInApp key={state.user.id} email={state.user.email} />
       {showIntro && <WelcomeSplash name={state.user.name} onDone={finishIntro} />}
     </>
   );

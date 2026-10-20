@@ -1,11 +1,9 @@
-import { adoptLegacyData } from '../data/localStorageRepository';
-import { LocalAuthService } from './localAuthService';
+import { HttpAuthService } from './httpAuthService';
 import type { AuthService } from './types';
 
-/** Ponto único de troca da forma de acesso (local hoje, servidor no futuro). */
+/** Ponto único de troca da forma de acesso. */
 export function createAuthService(): AuthService {
-  // A primeira conta do aparelho herda os dados usados antes do acesso por login.
-  return new LocalAuthService({ onFirstAccount: adoptLegacyData });
+  return new HttpAuthService();
 }
 
 export type { AuthService, User } from './types';

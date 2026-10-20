@@ -12,9 +12,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "deploy": "npm run build && npx wrangler@4 pages deploy dist --project-name evolua-meus-estudos --branch main"
+    "deploy": "npm run build && wrangler pages deploy --branch main",
+    "dev:api": "npm run build && wrangler d1 migrations apply evolua-meus-estudos --local --persist-to .wrangler/local && wrangler pages dev --port 8788 --persist-to .wrangler/local",
+    "db:migrate": "wrangler d1 migrations apply evolua-meus-estudos --remote"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261019.1",
     "@playwright/test": "1.56.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -25,7 +28,8 @@
     "jsdom": "^26.1.0",
     "typescript": "~5.8.3",
     "vite": "^6.4.0",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "^4.151.3"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

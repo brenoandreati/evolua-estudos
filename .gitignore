@@ -7,4 +7,7 @@ playwright-report
 *.log
 .env
 .env.local
+
+# Estado local da Cloudflare (banco de testes)
 .wrangler
+.dev.vars

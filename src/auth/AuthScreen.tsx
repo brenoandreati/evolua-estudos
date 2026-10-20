@@ -4,7 +4,7 @@ import { CalendarDays, Eye, EyeOff, LoaderCircle, ShieldCheck, TrendingUp, Trian
 import { BarsMark, CapIcon, EvoluaNegocioLogo } from '../components/brand/Logo';
 import { Field } from '../components/ui/Field';
 import { useAuth } from './AuthProvider';
-import { GOOGLE_CLIENT_ID, isGoogleEnabled, loadGoogleIdentity } from './google';
+import { getGoogleClientId, loadGoogleIdentity } from './google';
 import { AuthError, type AuthField } from './types';
 import { PASSWORD_HINT, emailError, nameError, passwordError } from './validation';
 
@@ -17,10 +17,24 @@ const TITLES: Record<Mode, { title: string; subtitle: string }> = {
   forgot: { title: 'Esqueci minha senha', subtitle: 'Veja como voltar a acessar seu painel.' },
 };
 
-export function AuthScreen() {
+const NOTICES = {
+  expired: 'Sua sessão terminou. Entre novamente para continuar.',
+  offline: 'Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.',
+};
+
+export function AuthScreen({ notice }: { notice?: keyof typeof NOTICES }) {
   const [mode, setMode] = useState<Mode>('login');
   const [remember, setRemember] = useState(true);
-  const google = isGoogleEnabled();
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+
+  // O botão do Google só aparece se o servidor tiver o Client ID configurado.
+  useEffect(() => {
+    let active = true;
+    void getGoogleClientId().then((id) => active && setGoogleClientId(id));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     document.title = `${TITLES[mode].title} · Evolua Meus Estudos`;
@@ -93,9 +107,15 @@ export function AuthScreen() {
             <p>{TITLES[mode].subtitle}</p>
           </header>
 
-          {mode !== 'forgot' && google && (
+          {notice && mode === 'login' && (
+            <p className="auth__notice" role="status">
+              {NOTICES[notice]}
+            </p>
+          )}
+
+          {mode !== 'forgot' && googleClientId && (
             <>
-              <GoogleSignIn key={mode} remember={remember} />
+              <GoogleSignIn key={mode} clientId={googleClientId} remember={remember} />
               <div className="auth__divider">
                 <span>ou com e-mail</span>
               </div>
@@ -111,13 +131,15 @@ export function AuthScreen() {
             />
           )}
           {mode === 'register' && <RegisterForm key="register" remember={remember} onRememberChange={setRemember} />}
-          {mode === 'forgot' && <ForgotPassword google={google} remember={remember} onBack={() => setMode('login')} />}
+          {mode === 'forgot' && (
+            <ForgotPassword googleClientId={googleClientId} remember={remember} onBack={() => setMode('login')} />
+          )}
 
           <p className="auth__note">
             <ShieldCheck size={16} aria-hidden />
             <span>
-              Seu acesso e seus dados ficam salvos somente neste navegador, neste aparelho. A senha é guardada de
-              forma protegida.
+              Sua conta e seus dados ficam guardados com segurança na nuvem: entre de qualquer aparelho e encontre
+              tudo como deixou. A senha é protegida com criptografia.
             </span>
           </p>
 
@@ -239,7 +261,7 @@ function RememberCheckbox({ checked, onChange }: { checked: boolean; onChange: (
 }
 
 /** Botão oficial "Continuar com Google" (só aparece com o Client ID configurado). */
-function GoogleSignIn({ remember }: { remember: boolean }) {
+function GoogleSignIn({ clientId, remember }: { clientId: string; remember: boolean }) {
   const { signInWithGoogle } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
@@ -255,7 +277,7 @@ function GoogleSignIn({ remember }: { remember: boolean }) {
         const container = containerRef.current;
         if (!active || !container) return;
         api.initialize({
-          client_id: GOOGLE_CLIENT_ID,
+          client_id: clientId,
           ux_mode: 'popup',
           auto_select: false,
           callback: ({ credential }) => {
@@ -287,7 +309,7 @@ function GoogleSignIn({ remember }: { remember: boolean }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [clientId]);
 
   return (
     <div className="auth__google">
@@ -446,23 +468,28 @@ function RegisterForm({ remember, onRememberChange }: RememberProps) {
   );
 }
 
-function ForgotPassword({ google, remember, onBack }: { google: boolean; remember: boolean; onBack: () => void }) {
+function ForgotPassword({
+  googleClientId,
+  remember,
+  onBack,
+}: {
+  googleClientId: string | null;
+  remember: boolean;
+  onBack: () => void;
+}) {
   return (
     <div className="auth__forgot">
-      <p>
-        Nesta versão, seu acesso fica salvo somente neste navegador. Por isso, ainda não é possível enviar um e-mail
-        para redefinir a senha.
-      </p>
-      {google ? (
+      <p>A redefinição de senha por e-mail ainda não está disponível.</p>
+      {googleClientId ? (
         <>
           <p>
             Se o seu e-mail for uma conta Google, use o botão abaixo com esse mesmo e-mail: você entra na sua conta e
             encontra seus dados como deixou.
           </p>
-          <GoogleSignIn remember={remember} />
+          <GoogleSignIn clientId={googleClientId} remember={remember} />
         </>
       ) : (
-        <p>A recuperação de senha por e-mail fará parte da versão com contas em servidor.</p>
+        <p>Se não lembrar a senha, fale com a equipe da Evolua para recuperar o acesso.</p>
       )}
       <button type="button" className="button button--secondary auth__submit" onClick={onBack}>
         Voltar para entrar

@@ -1,9 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 import { sampleStudyData } from '../src/test/fixtures';
 
-const ANA = { name: 'Ana', email: 'ana@email.com', password: 'estudos2026' };
-const BIA = { name: 'Bia', email: 'bia@email.com', password: 'aprender123' };
-type TestUser = typeof ANA;
+type TestUser = { name: string; email: string; password: string };
+
+// O banco de testes é compartilhado entre os testes: cada teste usa e-mails únicos.
+const uniqueEmail = (name: string) => `${name.toLowerCase()}.${Math.random().toString(36).slice(2, 10)}@teste.com`;
+let ANA: TestUser;
+let BIA: TestUser;
+test.beforeEach(() => {
+  ANA = { name: 'Ana', email: uniqueEmail('ana'), password: 'estudos2026' };
+  BIA = { name: 'Bia', email: uniqueEmail('bia'), password: 'aprender123' };
+});
 
 async function waitForPanel(page: Page) {
   await expect(page.locator('.content')).toBeVisible();
@@ -32,13 +39,19 @@ async function signUp(
   await waitForPanel(page);
 }
 
-/** Contas novas começam vazias; aqui a conta recebe as 8 atividades fictícias dos testes. */
+/** Contas novas começam vazias; aqui a conta recebe as 8 atividades fictícias dos testes (pela API). */
 async function loadSampleData(page: Page) {
-  await page.evaluate((data) => {
-    const raw = localStorage.getItem('evolua-estudos:sessao:v1') ?? sessionStorage.getItem('evolua-estudos:sessao:v1');
-    const { userId } = JSON.parse(raw ?? '{}') as { userId: string };
-    localStorage.setItem(`evolua-estudos:dados:v1:${userId}`, JSON.stringify(data));
-  }, sampleStudyData());
+  // Espera o painel registrar a conta vazia no servidor (versão 1) para não haver conflito.
+  let version = 0;
+  await expect
+    .poll(async () => {
+      const response = await page.request.get('/api/data');
+      version = ((await response.json()) as { version: number }).version;
+      return version;
+    })
+    .toBeGreaterThan(0);
+  const response = await page.request.put('/api/data', { data: { data: sampleStudyData(), version } });
+  expect(response.ok()).toBeTruthy();
   await page.reload();
   await waitForPanel(page);
 }
@@ -522,7 +535,7 @@ test.describe('Acesso', () => {
     await page.getByLabel(/^Senha/).fill('qualquer123');
     await page.getByLabel(/^Confirme a senha/).fill('qualquer123');
     await page.getByRole('button', { name: 'Criar acesso e entrar' }).click();
-    await expect(page.getByText('Já existe uma conta com este e-mail neste aparelho.')).toBeVisible();
+    await expect(page.getByText('Já existe uma conta com este e-mail.')).toBeVisible();
 
     await page.getByRole('tab', { name: 'Entrar' }).click();
     await logIn(page, ANA.email, ANA.password);
@@ -535,18 +548,113 @@ test.describe('Acesso', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Esqueci minha senha' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Esqueci minha senha' })).toBeVisible();
-    await expect(page.getByText('ainda não é possível enviar um e-mail')).toBeVisible();
+    await expect(page.getByText('A redefinição de senha por e-mail ainda não está disponível.')).toBeVisible();
     await page.getByRole('button', { name: 'Voltar para entrar' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
   });
 
-  test('sem "manter conectado", uma nova aba pede login', async ({ page, context }) => {
+  test('"manter conectado" define se o acesso continua ao fechar o navegador', async ({ page, context }) => {
     await page.clock.setFixedTime(new Date(DAY_ONE));
     await page.goto('/');
     await signUp(page, ANA, { remember: false });
+    const temporary = (await context.cookies()).find((c) => c.name === 'evolua_sessao');
+    expect(temporary?.httpOnly).toBe(true);
+    expect(temporary?.expires).toBe(-1); // some ao fechar o navegador
 
+    await logOut(page);
+    await logIn(page, ANA.email, ANA.password);
+    await skipIntro(page);
+    const kept = (await context.cookies()).find((c) => c.name === 'evolua_sessao');
+    expect(kept?.expires).toBeGreaterThan(Date.now() / 1000 + 29 * 86_400); // 30 dias
+  });
+
+  test('sair em uma aba encerra a sessão nas outras', async ({ page, context }) => {
+    await openAt(page, DAY_ONE, '#/atividades');
     const other = await context.newPage();
-    await other.goto('/');
-    await expect(other.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+    await other.goto('/#/atividades');
+    await waitForPanel(other);
+    await logOut(other);
+
+    await completeActivity(page, 'Recuperação online', 'Matemática');
+    await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+    await expect(page.getByText('Sua sessão terminou. Entre novamente para continuar.')).toBeVisible();
+  });
+
+  test('excluir a conta apaga o acesso e os dados', async ({ page }) => {
+    await openAt(page, DAY_ONE);
+    await page.getByRole('button', { name: 'Configurações' }).locator('visible=true').first().click();
+    await page.getByRole('button', { name: 'Excluir minha conta' }).click();
+    const confirm = page.getByRole('alertdialog');
+    await expect(confirm).toContainText(ANA.email);
+    await confirm.getByRole('button', { name: 'Excluir minha conta' }).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
+    await logIn(page, ANA.email, ANA.password);
+    await expect(page.getByText('E-mail ou senha incorretos.')).toBeVisible();
+  });
+});
+
+test.describe('Nuvem: vários aparelhos', () => {
+  test('o que é feito em um aparelho aparece no outro', async ({ browser }) => {
+    const deviceA = await (await browser.newContext()).newPage();
+    const deviceB = await (await browser.newContext()).newPage();
+    await openAt(deviceA, DAY_ONE, '#/atividades');
+
+    await deviceB.clock.setFixedTime(new Date(DAY_ONE));
+    await deviceB.goto('/#/atividades');
+    await logIn(deviceB, ANA.email, ANA.password);
+    await skipIntro(deviceB);
+    await waitForPanel(deviceB);
+    await expect(deviceB.getByTestId('activity-item')).toHaveCount(8);
+
+    // Aparelho A conclui uma atividade; B vê ao voltar para a aba.
+    await completeActivity(deviceA, 'Videoaulas e exercícios', 'Matemática');
+    await expect(deviceA.getByTestId('activity-item')).toHaveCount(7);
+    await expect.poll(async () => {
+      await deviceB.evaluate(() => window.dispatchEvent(new Event('focus')));
+      return deviceB.getByTestId('activity-item').count();
+    }).toBe(7);
+  });
+
+  test('alteração feita com dados desatualizados não apaga a do outro aparelho', async ({ browser }) => {
+    const deviceA = await (await browser.newContext()).newPage();
+    const deviceB = await (await browser.newContext()).newPage();
+    await openAt(deviceA, DAY_ONE, '#/atividades');
+    await deviceB.clock.setFixedTime(new Date(DAY_ONE));
+    await deviceB.goto('/#/atividades');
+    await logIn(deviceB, ANA.email, ANA.password);
+    await skipIntro(deviceB);
+    await waitForPanel(deviceB);
+
+    await completeActivity(deviceA, 'Videoaulas e exercícios', 'Matemática');
+    await expect(deviceA.getByRole('status').filter({ hasText: 'concluída!' })).toBeVisible();
+    // B ainda não atualizou e conclui outra atividade: o servidor recusa e B recebe a versão nova.
+    await completeActivity(deviceB, 'Avaliação online', 'Física');
+    await expect(
+      deviceB.getByText('Seus dados foram atualizados com as alterações feitas em outro aparelho.'),
+    ).toBeVisible();
+    await deviceB.goto('/#/concluidas');
+    await expect(activityRow(deviceB, 'Videoaulas e exercícios')).toBeVisible();
+  });
+
+  test('dados criados antes da versão com nuvem vão para a conta ao entrar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(DAY_ONE));
+    await page.goto('/');
+    // Simula a versão anterior: conta e dados guardados só no navegador.
+    await page.evaluate(
+      ({ email, data }) => {
+        localStorage.setItem('evolua-estudos:contas:v1', JSON.stringify([{ id: 'conta-local-1', email }]));
+        localStorage.setItem('evolua-estudos:dados:v1:conta-local-1', JSON.stringify(data));
+      },
+      { email: ANA.email, data: sampleStudyData() },
+    );
+    await signUp(page);
+    await page.goto('/#/atividades?ver=todas');
+    await expect(page.getByTestId('activity-item')).toHaveCount(8);
+
+    // Foi para o servidor e saiu do navegador.
+    const response = await page.request.get('/api/data');
+    expect(((await response.json()) as { data: { activities: unknown[] } }).data.activities).toHaveLength(8);
+    expect(await page.evaluate(() => localStorage.getItem('evolua-estudos:dados:v1:conta-local-1'))).toBeNull();
   });
 });

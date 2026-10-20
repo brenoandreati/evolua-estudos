@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { HardDrive, LogOut, Trash2, UserRound } from 'lucide-react';
+import { Cloud, LogOut, Trash2, UserRoundX, UserRound } from 'lucide-react';
 import { useAuth, useCurrentUser } from '../../auth/AuthProvider';
 import { useStudyCommands } from '../../state/useStudyCommands';
 import { Field } from '../ui/Field';
@@ -10,7 +10,7 @@ import { useToast } from '../ui/ToastProvider';
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const user = useCurrentUser();
   const { updateProfile } = useAuth();
-  const { clearAllData, logout } = useStudyCommands();
+  const { clearAllData, logout, deleteAccount } = useStudyCommands();
   const { showToast } = useToast();
   const [name, setName] = useState(user.name);
   const [nameError, setNameError] = useState<string>();
@@ -26,8 +26,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       await updateProfile({ name });
       showToast('Nome de usuário atualizado.');
       onClose();
-    } catch {
-      showToast('Não foi possível salvar. Tente novamente.', { tone: 'error' });
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Não foi possível salvar. Tente novamente.', {
+        tone: 'error',
+      });
     }
   };
 
@@ -91,12 +93,11 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
       <div className="settings-block">
         <h3 className="settings-block__title">
-          <HardDrive size={16} aria-hidden /> Onde ficam seus dados
+          <Cloud size={16} aria-hidden /> Onde ficam seus dados
         </h3>
         <p className="settings-block__text">
-          Sua conta e suas atividades ficam salvas automaticamente neste navegador, neste aparelho. Os dados
-          continuam aqui ao fechar ou atualizar a página, mas não aparecem em outros aparelhos e são apagados se
-          você limpar os dados de navegação.
+          Sua conta, disciplinas e atividades ficam guardadas na nuvem e são salvas automaticamente a cada
+          alteração. Você pode entrar de qualquer aparelho com seu e-mail e encontrar tudo como deixou.
         </p>
       </div>
 
@@ -109,6 +110,18 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         </p>
         <button type="button" className="button button--danger-outline" onClick={() => void clearAllData()}>
           Apagar todos os dados
+        </button>
+      </div>
+
+      <div className="settings-block settings-block--danger">
+        <h3 className="settings-block__title">
+          <UserRoundX size={16} aria-hidden /> Excluir minha conta
+        </h3>
+        <p className="settings-block__text">
+          Apaga sua conta e todos os seus dados permanentemente. Para usar de novo, será preciso criar outro acesso.
+        </p>
+        <button type="button" className="button button--danger-outline" onClick={() => void deleteAccount()}>
+          Excluir minha conta
         </button>
       </div>
     </Modal>

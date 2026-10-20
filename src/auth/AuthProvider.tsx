@@ -1,9 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { SESSION_EXPIRED_EVENT } from '../api/client';
 import { createAuthService } from '.';
 import type { AuthService, RegisterInput, User } from './types';
 
-type AuthState = { status: 'loading' } | { status: 'signedOut' } | { status: 'signedIn'; user: User };
+type AuthState =
+  | { status: 'loading' }
+  | { status: 'signedOut'; reason?: 'expired' | 'offline' }
+  | { status: 'signedIn'; user: User };
 
 interface AuthContextValue {
   state: AuthState;
@@ -12,6 +16,7 @@ interface AuthContextValue {
   signInWithGoogle(credential: string, remember: boolean): Promise<User>;
   logout(): Promise<void>;
   updateProfile(profile: { name: string }): Promise<User>;
+  deleteAccount(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -20,16 +25,20 @@ export function AuthProvider({ children, service }: { children: ReactNode; servi
   const auth = useMemo(() => service ?? createAuthService(), [service]);
   const [state, setState] = useState<AuthState>({ status: 'loading' });
 
-  const refresh = useCallback(() => {
+  useEffect(() => {
     auth
       .currentUser()
       .then((user) => setState(user ? { status: 'signedIn', user } : { status: 'signedOut' }))
-      .catch(() => setState({ status: 'signedOut' }));
+      .catch(() => setState({ status: 'signedOut', reason: 'offline' }));
   }, [auth]);
 
-  useEffect(refresh, [refresh]);
-  // Entrar ou sair em uma aba vale para as outras abas abertas.
-  useEffect(() => auth.subscribe?.(refresh), [auth, refresh]);
+  // O servidor avisou que a sessão acabou (ex.: saiu em outra aba ou aparelho).
+  useEffect(() => {
+    const onExpired = () =>
+      setState((current) => (current.status === 'signedIn' ? { status: 'signedOut', reason: 'expired' } : current));
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   const signedIn = useCallback((user: User) => {
     setState({ status: 'signedIn', user });
@@ -42,11 +51,15 @@ export function AuthProvider({ children, service }: { children: ReactNode; servi
       register: (input, remember) => auth.register(input, { remember }).then(signedIn),
       login: (email, password, remember) => auth.login(email, password, { remember }).then(signedIn),
       signInWithGoogle: (credential, remember) => auth.signInWithGoogle(credential, { remember }).then(signedIn),
-      logout: () => auth.logout().then(() => setState({ status: 'signedOut' })),
-      updateProfile: (profile) => {
-        if (state.status !== 'signedIn') return Promise.reject(new Error('Nenhuma conta conectada.'));
-        return auth.updateProfile(state.user.id, profile).then(signedIn);
-      },
+      logout: () =>
+        auth
+          .logout()
+          .catch(() => {
+            // Mesmo sem conexão, a tela volta para o acesso.
+          })
+          .then(() => setState({ status: 'signedOut' })),
+      updateProfile: (profile) => auth.updateProfile(profile).then(signedIn),
+      deleteAccount: () => auth.deleteAccount().then(() => setState({ status: 'signedOut' })),
     }),
     [auth, signedIn, state],
   );

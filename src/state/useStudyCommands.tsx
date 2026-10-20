@@ -136,8 +136,37 @@ export function useStudyCommands() {
     return true;
   }, [auth, closeModal, confirm, showToast]);
 
+  const deleteAccount = useCallback(async () => {
+    const email = auth.state.status === 'signedIn' ? auth.state.user.email : '';
+    const ok = await confirm({
+      title: 'Excluir sua conta?',
+      message: (
+        <>
+          <p>
+            A conta <strong>{email}</strong> e todas as disciplinas e atividades dela serão apagadas
+            permanentemente do Evolua Meus Estudos.
+          </p>
+          <p className="confirm-message__warning">Essa ação não pode ser desfeita.</p>
+        </>
+      ),
+      confirmLabel: 'Excluir minha conta',
+    });
+    if (!ok) return false;
+    try {
+      await auth.deleteAccount();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Não foi possível excluir a conta.', { tone: 'error' });
+      return false;
+    }
+    closeModal();
+    resetIntro();
+    navigate(paths.overview, { replace: true });
+    showToast('Sua conta foi excluída.', { tone: 'info' });
+    return true;
+  }, [auth, closeModal, confirm, showToast]);
+
   return useMemo(
-    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout }),
-    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout],
+    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout, deleteAccount }),
+    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout, deleteAccount],
   );
 }

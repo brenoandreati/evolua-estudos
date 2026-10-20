@@ -1,25 +1,22 @@
 import type { StudyData } from '../domain/types';
 
 /**
- * Contrato de persistência do painel.
- *
- * A primeira versão salva no navegador (`LocalStorageRepository`). Para usar
- * um banco de dados com login no futuro, basta criar outra implementação
- * desta interface (por exemplo, chamando uma API HTTP) e trocá-la em
- * `src/data/index.ts` — telas e regras de negócio não mudam.
+ * Contrato de persistência do painel. A implementação atual
+ * (`HttpStudyRepository`) guarda os dados no servidor, na conta da pessoa;
+ * telas e regras de negócio só conhecem esta interface.
  */
 export interface StudyRepository {
-  /** Retorna os dados salvos ou `null` se ainda não houver nada salvo. */
+  /** Retorna os dados salvos ou `null` se a conta ainda não tem nada salvo. */
   load(): Promise<StudyData | null>;
   save(data: StudyData): Promise<void>;
-  /** Avisa quando os dados mudam fora desta aba (ex.: outra aba aberta). */
+  /** Avisa quando os dados mudam fora desta tela (ex.: em outro aparelho). */
   subscribe?(listener: (data: StudyData) => void): () => void;
 }
 
-export class StorageUnavailableError extends Error {
-  constructor(cause?: unknown) {
-    super('Não foi possível acessar o armazenamento do navegador.');
-    this.name = 'StorageUnavailableError';
-    this.cause = cause;
+/** Os dados foram alterados em outro aparelho; `data` é a versão mais recente. */
+export class DataConflictError extends Error {
+  constructor(readonly data: StudyData) {
+    super('Seus dados foram alterados em outro aparelho.');
+    this.name = 'DataConflictError';
   }
 }
