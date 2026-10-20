@@ -67,3 +67,18 @@ export function Logo({ compact = false }: { compact?: boolean }) {
     </span>
   );
 }
+
+/** Assinatura da marca-mãe: barras crescentes + "Evolua Meu Negócio". */
+export function EvoluaNegocioLogo({ tone = 'brand' }: { tone?: 'brand' | 'light' }) {
+  return (
+    <span className={`evolua-negocio evolua-negocio--${tone}`}>
+      <span className="evolua-negocio__label">Uma iniciativa</span>
+      <span className="evolua-negocio__lockup">
+        <BarsMark width={28} className="evolua-negocio__mark" />
+        <span className="evolua-negocio__name">
+          <strong>Evolua</strong> Meu Negócio
+        </span>
+      </span>
+    </span>
+  );
+}

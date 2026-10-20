@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { CalendarDays, Eye, EyeOff, LoaderCircle, ShieldCheck, TrendingUp, TriangleAlert } from 'lucide-react';
-import { BarsMark, CapIcon } from '../components/brand/Logo';
+import { BarsMark, CapIcon, EvoluaNegocioLogo } from '../components/brand/Logo';
 import { Field } from '../components/ui/Field';
 import { useToast } from '../components/ui/ToastProvider';
 import { useAuth } from './AuthProvider';
@@ -49,6 +49,9 @@ export function AuthScreen() {
           </ul>
         </div>
         <BarsMark width={220} className="auth__bars" />
+        <div className="auth__signature">
+          <EvoluaNegocioLogo tone="light" />
+        </div>
       </aside>
 
       <main className="auth__panel">
@@ -118,6 +121,10 @@ export function AuthScreen() {
               forma protegida.
             </span>
           </p>
+
+          <div className="auth__mobile-signature">
+            <EvoluaNegocioLogo />
+          </div>
         </div>
       </main>
     </div>

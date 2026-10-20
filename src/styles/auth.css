@@ -83,6 +83,17 @@
   color: rgb(255 255 255 / 0.08);
 }
 
+.auth__signature {
+  position: absolute;
+  left: var(--space-10);
+  bottom: var(--space-8);
+  z-index: 1;
+}
+
+.auth__mobile-signature {
+  display: none;
+}
+
 .auth__panel {
   display: grid;
   place-items: center;
@@ -316,6 +327,12 @@
     padding: var(--space-8) var(--space-5);
   }
 
+  .auth__mobile-signature {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-8);
+  }
+
   .auth__mobile-brand {
     display: flex;
     align-items: center;
@@ -340,4 +357,59 @@
     font-size: var(--text-sm);
     color: var(--text-muted);
   }
+}
+
+/* ---------- Assinatura Evolua Meu Negócio ---------- */
+.evolua-negocio {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.evolua-negocio__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.evolua-negocio__lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.evolua-negocio__name {
+  font-size: var(--text-md);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.evolua-negocio__name strong {
+  font-weight: 800;
+}
+
+.evolua-negocio--light {
+  color: #fff;
+}
+
+.evolua-negocio--light .evolua-negocio__name {
+  font-size: var(--text-lg);
+}
+
+.evolua-negocio--light .evolua-negocio__label {
+  color: rgb(255 255 255 / 0.7);
+}
+
+.evolua-negocio--brand {
+  align-items: center;
+  color: var(--gray-700);
+}
+
+.evolua-negocio--brand .evolua-negocio__label {
+  color: var(--text-muted);
+}
+
+.evolua-negocio--brand .evolua-negocio__mark {
+  color: var(--brand-600);
 }
