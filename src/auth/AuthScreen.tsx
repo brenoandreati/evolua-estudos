@@ -406,7 +406,7 @@ function RegisterForm({ remember, onRememberChange }: RememberProps) {
         id="auth-name"
         label="Nome de usuário"
         error={errors.name}
-        hint="É assim que a plataforma vai chamar você. Ex.: Breno"
+        hint="É assim que a plataforma vai chamar você. Ex.: Maria"
         required
       >
         <input

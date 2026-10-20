@@ -20,9 +20,20 @@ npm run build      # gera a pasta dist/
 npm run preview    # serve a pasta dist/ localmente
 ```
 
-A pasta `dist/` pode ser publicada em qualquer hospedagem de site estático (GitHub Pages, Netlify, Vercel…),
-inclusive em subpastas: os caminhos são relativos e a navegação usa `#/` no endereço, então não é preciso
-configurar o servidor.
+A pasta `dist/` pode ser publicada em qualquer hospedagem de site estático, inclusive em subpastas: os
+caminhos são relativos e a navegação usa `#/` no endereço, então não é preciso configurar o servidor.
+
+### Publicação na Cloudflare Pages
+
+O site fica publicado em **https://evolua-meus-estudos.pages.dev** (projeto `evolua-meus-estudos`).
+Para publicar uma nova versão:
+
+```bash
+export CLOUDFLARE_API_TOKEN=...   # token com permissão "Cloudflare Pages: Edit"
+npm run deploy                    # gera o site e envia para a Cloudflare
+```
+
+O arquivo `public/_headers` define o cache dos arquivos gerados e cabeçalhos básicos de segurança.
 
 ## Acesso
 
@@ -33,7 +44,7 @@ Ao abrir o painel, aparece a tela de acesso com a marca Evolua. Na primeira vez,
 - **E-mail e senha**: informa o **nome de usuário** (como a plataforma vai chamá-la), o e-mail e uma senha
   (mínimo de 8 caracteres, com letras e números).
 
-Depois disso, a Visão geral cumprimenta pelo nome: *“Bom dia, Breno! Você tem 8 atividades a serem feitas…”*.
+Depois disso, a Visão geral cumprimenta pelo nome: *“Bom dia, Maria! Você tem 8 atividades a serem feitas…”*.
 O nome de usuário pode ser alterado em **Configurações**.
 
 - **Manter conectado neste aparelho:** marcado, o acesso continua ao fechar o navegador; desmarcado, vale
