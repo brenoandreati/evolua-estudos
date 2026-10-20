@@ -48,7 +48,7 @@ function Screens() {
     route.name === 'discipline' ? data.disciplines.find((d) => d.id === route.id)?.name : undefined;
 
   useEffect(() => {
-    document.title = `${disciplineName ?? TITLES[route.name]} · Evolua Estudos`;
+    document.title = `${disciplineName ?? TITLES[route.name]} · Evolua Meus Estudos`;
   }, [route.name, disciplineName]);
 
   // Volta ao topo ao trocar de página (mas não ao mudar filtros na mesma página).

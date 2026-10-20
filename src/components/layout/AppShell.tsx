@@ -38,7 +38,7 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
   return (
     <div className="app">
       <aside className="sidebar" aria-label="Menu principal">
-        <a href={paths.overview} className="sidebar__brand" aria-label="Evolua Estudos — Visão geral">
+        <a href={paths.overview} className="sidebar__brand" aria-label="Evolua Meus Estudos — Visão geral">
           <Logo />
         </a>
 
@@ -76,9 +76,9 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
 
       <div className="app__main">
         <header className="topbar">
-          <a href={paths.overview} className="topbar__brand" aria-label="Evolua Estudos — Visão geral">
+          <a href={paths.overview} className="topbar__brand" aria-label="Evolua Meus Estudos — Visão geral">
             <Logo compact />
-            <span className="topbar__title">Evolua Estudos</span>
+            <span className="topbar__title">Evolua Meus Estudos</span>
           </a>
           <GlobalSearch route={route} />
           <div className="topbar__actions">

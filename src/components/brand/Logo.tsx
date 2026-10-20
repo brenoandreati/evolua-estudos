@@ -60,8 +60,8 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       </span>
       {!compact && (
         <span className="logo__text">
-          <span className="logo__name">Evolua Estudos</span>
-          <span className="logo__tagline">Meu Painel de Estudos</span>
+          <span className="logo__name">Evolua Meus Estudos</span>
+          <span className="logo__tagline">Painel de estudos</span>
         </span>
       )}
     </span>

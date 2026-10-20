@@ -113,6 +113,7 @@
   display: none;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   border-radius: var(--radius);
 }
 
@@ -120,6 +121,9 @@
   font-weight: 700;
   font-size: var(--text-md);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar .search {
@@ -273,6 +277,10 @@
     padding: 0;
     width: 40px;
     height: 40px;
+  }
+
+  .topbar__title {
+    font-size: clamp(0.875rem, 4.4vw, 1rem);
   }
 
   .topbar__new-label {

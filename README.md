@@ -1,4 +1,4 @@
-# Evolua Estudos — Meu Painel de Estudos
+# Evolua Meus Estudos
 
 Painel pessoal para organizar disciplinas, acompanhar prazos, concluir atividades e ver o progresso do curso.
 Ao abrir, você vê na hora o que precisa fazer hoje, o que está perto de vencer, o que está atrasado e quanto

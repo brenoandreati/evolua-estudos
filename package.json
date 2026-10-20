@@ -2,7 +2,7 @@
   "name": "evolua-estudos",
   "private": true,
   "version": "1.0.0",
-  "description": "Meu Painel de Estudos — organize disciplinas, prazos e o progresso do curso.",
+  "description": "Evolua Meus Estudos — organize disciplinas, prazos e o progresso do curso.",
   "type": "module",
   "scripts": {
     "dev": "vite",
