@@ -280,7 +280,22 @@
   }
 
   .topbar__title {
-    font-size: clamp(0.875rem, 4.4vw, 1rem);
+    font-size: clamp(0.875rem, 4.2vw, 1rem);
+  }
+
+  .topbar .logo__mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .topbar__actions {
+    gap: 2px;
+  }
+
+  .topbar .bell__trigger {
+    width: 36px;
+    height: 36px;
   }
 
   .topbar__new-label {

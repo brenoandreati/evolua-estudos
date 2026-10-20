@@ -196,6 +196,21 @@ test.describe('Prazos vencidos', () => {
     await expect(activityRow(page, 'Exercício avaliativo online')).not.toContainText('Atrasada');
   });
 
+  test('sino de avisos lista atrasadas e prazos próximos', async ({ page }) => {
+    await openAt(page, '2026-11-12T09:00:00-03:00');
+    const bell = page.getByRole('button', { name: 'Avisos de prazo (6)' });
+    await bell.click();
+    const panel = page.getByRole('dialog', { name: 'Avisos de prazo' });
+    await expect(panel.getByRole('listitem')).toHaveCount(6);
+    await expect(panel.getByRole('listitem').first()).toContainText('Atrasada há 3 dias');
+
+    await panel.getByRole('button', { name: /Exercício avaliativo online/ }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Exercício avaliativo online' })).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Concluir' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Avisos de prazo (5)' })).toBeVisible();
+  });
+
   test('vence hoje e virada do dia sem editar nada', async ({ page }) => {
     await openAt(page, '2026-11-09T08:00:00-03:00', '#/atividades?ver=prazo_proximo');
     await expect(activityRow(page, 'Exercício avaliativo online')).toContainText('Vence hoje');

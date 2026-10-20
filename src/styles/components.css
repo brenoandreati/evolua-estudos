@@ -10,11 +10,12 @@
 .logo__mark {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: var(--brand-50);
-  color: var(--brand-600);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--brand-600);
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(16 92 232 / 0.28);
   flex-shrink: 0;
 }
 
@@ -1331,4 +1332,163 @@ select {
 
 .settings-block--danger .settings-block__title {
   color: var(--atrasada-strong);
+}
+
+/* ---------- Sino de avisos ---------- */
+.bell {
+  position: relative;
+}
+
+.bell__trigger {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.bell__badge {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--surface);
+  background: var(--urgente);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.bell__badge--danger {
+  background: var(--atrasada);
+}
+
+.bell__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-height: min(480px, calc(100vh - 96px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fade-in 140ms ease;
+  overflow: hidden;
+}
+
+.bell__header {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.bell__header strong {
+  font-size: var(--text-base);
+}
+
+.bell__header small {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.bell__empty {
+  padding: var(--space-6) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.bell__list {
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.bell__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  text-align: left;
+}
+
+.bell__item:hover {
+  background: var(--gray-50);
+}
+
+.bell__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bell__icon--atrasada {
+  background: var(--atrasada-soft);
+  color: var(--atrasada);
+}
+.bell__icon--urgente {
+  background: var(--urgente-soft);
+  color: var(--urgente);
+}
+.bell__icon--atencao {
+  background: var(--atencao-soft);
+  color: var(--atencao-strong);
+}
+
+.bell__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bell__text strong {
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.bell__text small {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.bell__when {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.bell__footer {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--brand-600);
+  text-align: center;
+}
+
+.bell__footer:hover {
+  background: var(--brand-50);
+}
+
+@media (max-width: 767px) {
+  .bell__panel {
+    position: fixed;
+    top: 64px;
+    left: var(--space-3);
+    right: var(--space-3);
+    width: auto;
+    max-height: calc(100dvh - 64px - var(--bottom-nav-height) - 24px);
+  }
 }

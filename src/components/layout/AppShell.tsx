@@ -16,6 +16,7 @@ import { navigate, paths, type Route } from '../../router';
 import { useStudy } from '../../state/StudyProvider';
 import { useUI } from '../../state/UIProvider';
 import { Logo } from '../brand/Logo';
+import { AttentionBell } from './AttentionBell';
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Visão geral', short: 'Início', href: paths.overview, icon: LayoutDashboard },
@@ -82,6 +83,7 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
           </a>
           <GlobalSearch route={route} />
           <div className="topbar__actions">
+            <AttentionBell />
             <button type="button" className="icon-button topbar__settings" onClick={openSettings} aria-label="Configurações">
               <Settings size={20} aria-hidden />
             </button>

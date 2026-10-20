@@ -61,7 +61,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <span className="logo__text">
           <span className="logo__name">Evolua Meus Estudos</span>
-          <span className="logo__tagline">Painel de estudos</span>
+          <span className="logo__tagline">Seu curso em um só lugar</span>
         </span>
       )}
     </span>

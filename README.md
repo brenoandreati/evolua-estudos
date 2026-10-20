@@ -34,6 +34,9 @@ configurar o servidor.
 | **Calendário** | Visão mensal com prazos e datas de início, nas cores de urgência. Clique em um dia para ver as atividades e abrir os detalhes. |
 | **Atividades concluídas** | Histórico com disciplina e data de conclusão. Desmarque para reabrir uma atividade. |
 
+No topo de todas as páginas, o **sino de avisos** mostra quantas atividades estão atrasadas ou vencem em até
+5 dias, com a lista e acesso direto aos detalhes de cada uma.
+
 Também é possível criar, editar e excluir disciplinas e atividades (sempre com confirmação antes de excluir),
 marcar uma atividade como “em andamento”, desfazer uma conclusão pelo aviso que aparece na tela e restaurar
 os dados iniciais em **Configurações**.
