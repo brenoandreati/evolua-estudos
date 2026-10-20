@@ -1,5 +1,5 @@
 /**
- * Hash de segredos (senha e CPF) com PBKDF2-SHA-256 e sal aleatório, via
+ * Hash da senha com PBKDF2-SHA-256 e sal aleatório, via
  * Web Crypto. Nada sensível é guardado em texto puro.
  */
 

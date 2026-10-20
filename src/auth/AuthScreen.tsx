@@ -1,26 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { CalendarDays, Eye, EyeOff, LoaderCircle, ShieldCheck, TrendingUp, TriangleAlert } from 'lucide-react';
 import { BarsMark, CapIcon } from '../components/brand/Logo';
 import { Field } from '../components/ui/Field';
 import { useToast } from '../components/ui/ToastProvider';
 import { useAuth } from './AuthProvider';
-import { formatCpf } from './cpf';
+import { GOOGLE_CLIENT_ID, isGoogleEnabled, loadGoogleIdentity } from './google';
 import { AuthError, type AuthField } from './types';
-import { PASSWORD_HINT, cpfError, emailError, passwordError } from './validation';
+import { PASSWORD_HINT, emailError, nameError, passwordError } from './validation';
 
-type Mode = 'login' | 'register' | 'reset';
+type Mode = 'login' | 'register' | 'forgot';
 type Errors = Partial<Record<AuthField | 'confirm' | 'form', string>>;
 
 const TITLES: Record<Mode, { title: string; subtitle: string }> = {
-  login: { title: 'Entrar', subtitle: 'Acesse seu painel com e-mail ou CPF e sua senha.' },
-  register: { title: 'Criar acesso', subtitle: 'Cadastre seu e-mail, CPF e uma senha para usar o painel.' },
-  reset: { title: 'Redefinir senha', subtitle: 'Confirme seu e-mail e CPF para criar uma nova senha.' },
+  login: { title: 'Entrar', subtitle: 'Acesse seu painel com seu e-mail e senha.' },
+  register: { title: 'Criar acesso', subtitle: 'Escolha seu nome de usuário, informe seu e-mail e crie uma senha.' },
+  forgot: { title: 'Esqueci minha senha', subtitle: 'Veja como voltar a acessar seu painel.' },
 };
 
 export function AuthScreen() {
   const [mode, setMode] = useState<Mode>('login');
-  const [prefillEmail, setPrefillEmail] = useState('');
+  const [remember, setRemember] = useState(true);
+  const google = isGoogleEnabled();
 
   useEffect(() => {
     document.title = `${TITLES[mode].title} · Evolua Meus Estudos`;
@@ -62,7 +63,7 @@ export function AuthScreen() {
             </div>
           </div>
 
-          {mode !== 'reset' && (
+          {mode !== 'forgot' && (
             <div className="auth__tabs" role="tablist" aria-label="Acesso">
               <button
                 type="button"
@@ -90,26 +91,31 @@ export function AuthScreen() {
             <p>{TITLES[mode].subtitle}</p>
           </header>
 
-          {mode === 'login' && (
-            <LoginForm key="login" initialIdentifier={prefillEmail} onForgot={() => setMode('reset')} />
+          {mode !== 'forgot' && google && (
+            <>
+              <GoogleSignIn key={mode} remember={remember} />
+              <div className="auth__divider">
+                <span>ou com e-mail</span>
+              </div>
+            </>
           )}
-          {mode === 'register' && <RegisterForm key="register" />}
-          {mode === 'reset' && (
-            <ResetForm
-              key="reset"
-              onCancel={() => setMode('login')}
-              onDone={(email) => {
-                setPrefillEmail(email);
-                setMode('login');
-              }}
+
+          {mode === 'login' && (
+            <LoginForm
+              key="login"
+              remember={remember}
+              onRememberChange={setRemember}
+              onForgot={() => setMode('forgot')}
             />
           )}
+          {mode === 'register' && <RegisterForm key="register" remember={remember} onRememberChange={setRemember} />}
+          {mode === 'forgot' && <ForgotPassword google={google} remember={remember} onBack={() => setMode('login')} />}
 
           <p className="auth__note">
             <ShieldCheck size={16} aria-hidden />
             <span>
-              Seu acesso e seus dados ficam salvos somente neste navegador, neste aparelho. A senha e o CPF são
-              guardados de forma protegida.
+              Seu acesso e seus dados ficam salvos somente neste navegador, neste aparelho. A senha é guardada de
+              forma protegida.
             </span>
           </p>
         </div>
@@ -226,44 +232,113 @@ function RememberCheckbox({ checked, onChange }: { checked: boolean; onChange: (
   );
 }
 
+/** Botão oficial "Continuar com Google" (só aparece com o Client ID configurado). */
+function GoogleSignIn({ remember }: { remember: boolean }) {
+  const { signInWithGoogle } = useAuth();
+  const { showToast } = useToast();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  // O Google chama o callback mais tarde; refs mantêm os valores atuais.
+  const latest = useRef({ remember, signInWithGoogle, showToast });
+  latest.current = { remember, signInWithGoogle, showToast };
+
+  useEffect(() => {
+    let active = true;
+    loadGoogleIdentity()
+      .then((api) => {
+        const container = containerRef.current;
+        if (!active || !container) return;
+        api.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          ux_mode: 'popup',
+          auto_select: false,
+          callback: ({ credential }) => {
+            const { remember: keep, signInWithGoogle: signIn, showToast: toast } = latest.current;
+            setError(undefined);
+            setBusy(true);
+            signIn(credential, keep)
+              .then((user) => toast(`Olá, ${user.name}! Bem-vindo(a) ao seu painel.`))
+              .catch((e: unknown) => {
+                if (active) setError(e instanceof Error ? e.message : 'Não foi possível entrar com o Google.');
+              })
+              .finally(() => active && setBusy(false));
+          },
+        });
+        container.replaceChildren();
+        api.renderButton(container, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          logo_alignment: 'center',
+          width: Math.round(Math.min(400, Math.max(220, container.clientWidth))),
+          locale: 'pt-BR',
+        });
+      })
+      .catch((e: unknown) => {
+        if (active) setError(e instanceof Error ? e.message : 'Não foi possível carregar o login do Google.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div className="auth__google">
+      <div ref={containerRef} className="auth__google-button" aria-busy={busy} />
+      {busy && (
+        <p className="auth__google-status">
+          <LoaderCircle size={16} className="spin" aria-hidden /> Entrando com o Google…
+        </p>
+      )}
+      <FormError message={error} />
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 
-function LoginForm({ initialIdentifier, onForgot }: { initialIdentifier: string; onForgot: () => void }) {
+interface RememberProps {
+  remember: boolean;
+  onRememberChange: (value: boolean) => void;
+}
+
+function LoginForm({ remember, onRememberChange, onForgot }: RememberProps & { onForgot: () => void }) {
   const { login } = useAuth();
   const { showToast } = useToast();
   const { busy, errors, run, clear } = useSubmit();
-  const [identifier, setIdentifier] = useState(initialIdentifier);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(true);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     void run(
       () => ({
-        identifier: identifier.trim() ? undefined : 'Informe seu e-mail ou CPF.',
+        email: email.trim() ? undefined : 'Informe seu e-mail.',
         password: password ? undefined : 'Informe sua senha.',
       }),
       async () => {
-        const user = await login(identifier, password, remember);
-        showToast(user.name ? `Bem-vindo(a) de volta, ${user.name.split(' ')[0]}!` : 'Bem-vindo(a) de volta!');
+        const user = await login(email, password, remember);
+        showToast(`Bem-vindo(a) de volta, ${user.name}!`);
       },
     );
   };
 
   return (
     <form className="form" onSubmit={onSubmit} noValidate>
-      <Field id="auth-identifier" label="E-mail ou CPF" error={errors.identifier}>
+      <Field id="auth-email" label="E-mail" error={errors.email}>
         <input
-          id="auth-identifier"
-          type="text"
-          inputMode="email"
+          id="auth-email"
+          type="email"
           autoComplete="username"
-          value={identifier}
+          value={email}
           onChange={(e) => {
-            setIdentifier(e.target.value);
-            clear('identifier');
+            setEmail(e.target.value);
+            clear('email');
           }}
-          placeholder="voce@email.com ou 000.000.000-00"
+          placeholder="voce@email.com"
         />
       </Field>
       <Field id="auth-password" label="Senha" error={errors.password}>
@@ -278,7 +353,7 @@ function LoginForm({ initialIdentifier, onForgot }: { initialIdentifier: string;
         />
       </Field>
       <div className="auth__row">
-        <RememberCheckbox checked={remember} onChange={setRemember} />
+        <RememberCheckbox checked={remember} onChange={onRememberChange} />
         <button type="button" className="link-button" onClick={onForgot}>
           Esqueci minha senha
         </button>
@@ -291,15 +366,14 @@ function LoginForm({ initialIdentifier, onForgot }: { initialIdentifier: string;
   );
 }
 
-function RegisterForm() {
+function RegisterForm({ remember, onRememberChange }: RememberProps) {
   const { register } = useAuth();
   const { showToast } = useToast();
   const { busy, errors, run, clear } = useSubmit();
-  const [form, setForm] = useState({ name: '', email: '', cpf: '', password: '', confirm: '' });
-  const [remember, setRemember] = useState(true);
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
 
   const set = (key: keyof typeof form, value: string) => {
-    setForm((f) => ({ ...f, [key]: key === 'cpf' ? formatCpf(value) : value }));
+    setForm((f) => ({ ...f, [key]: value }));
     clear(key);
   };
 
@@ -307,28 +381,34 @@ function RegisterForm() {
     event.preventDefault();
     void run(
       () => ({
+        name: nameError(form.name),
         email: emailError(form.email),
-        cpf: cpfError(form.cpf),
         password: passwordError(form.password),
         confirm: form.confirm !== form.password ? 'As senhas não conferem.' : undefined,
       }),
       async () => {
-        await register({ name: form.name, email: form.email, cpf: form.cpf, password: form.password }, remember);
-        showToast('Acesso criado! Seu painel já está pronto.');
+        const user = await register({ name: form.name, email: form.email, password: form.password }, remember);
+        showToast(`Acesso criado! Bem-vindo(a), ${user.name}.`);
       },
     );
   };
 
   return (
     <form className="form" onSubmit={onSubmit} noValidate>
-      <Field id="auth-name" label="Nome" hint="Opcional. Usado na saudação do painel.">
+      <Field
+        id="auth-name"
+        label="Nome de usuário"
+        error={errors.name}
+        hint="É assim que a plataforma vai chamar você. Ex.: Breno"
+        required
+      >
         <input
           id="auth-name"
           type="text"
-          autoComplete="name"
+          autoComplete="nickname"
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
-          maxLength={60}
+          maxLength={40}
         />
       </Field>
       <Field id="auth-email" label="E-mail" error={errors.email} required>
@@ -339,17 +419,6 @@ function RegisterForm() {
           value={form.email}
           onChange={(e) => set('email', e.target.value)}
           placeholder="voce@email.com"
-        />
-      </Field>
-      <Field id="auth-cpf" label="CPF" error={errors.cpf} required>
-        <input
-          id="auth-cpf"
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          value={form.cpf}
-          onChange={(e) => set('cpf', e.target.value)}
-          placeholder="000.000.000-00"
         />
       </Field>
       <Field id="auth-password" label="Senha" error={errors.password} hint={PASSWORD_HINT} required>
@@ -368,7 +437,7 @@ function RegisterForm() {
           autoComplete="new-password"
         />
       </Field>
-      <RememberCheckbox checked={remember} onChange={setRemember} />
+      <RememberCheckbox checked={remember} onChange={onRememberChange} />
       <FormError message={errors.form} />
       <SubmitButton busy={busy} busyLabel="Criando acesso…">
         Criar acesso e entrar
@@ -377,79 +446,27 @@ function RegisterForm() {
   );
 }
 
-function ResetForm({ onCancel, onDone }: { onCancel: () => void; onDone: (email: string) => void }) {
-  const { resetPassword } = useAuth();
-  const { showToast } = useToast();
-  const { busy, errors, run, clear } = useSubmit();
-  const [form, setForm] = useState({ email: '', cpf: '', password: '', confirm: '' });
-
-  const set = (key: keyof typeof form, value: string) => {
-    setForm((f) => ({ ...f, [key]: key === 'cpf' ? formatCpf(value) : value }));
-    clear(key);
-  };
-
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    void run(
-      () => ({
-        email: emailError(form.email),
-        cpf: cpfError(form.cpf),
-        password: passwordError(form.password),
-        confirm: form.confirm !== form.password ? 'As senhas não conferem.' : undefined,
-      }),
-      async () => {
-        await resetPassword({ email: form.email, cpf: form.cpf, password: form.password });
-        showToast('Senha redefinida. Entre com a nova senha.');
-        onDone(form.email.trim());
-      },
-    );
-  };
-
+function ForgotPassword({ google, remember, onBack }: { google: boolean; remember: boolean; onBack: () => void }) {
   return (
-    <form className="form" onSubmit={onSubmit} noValidate>
-      <Field id="auth-email" label="E-mail cadastrado" error={errors.email} required>
-        <input
-          id="auth-email"
-          type="email"
-          autoComplete="email"
-          value={form.email}
-          onChange={(e) => set('email', e.target.value)}
-        />
-      </Field>
-      <Field id="auth-cpf" label="CPF cadastrado" error={errors.cpf} required>
-        <input
-          id="auth-cpf"
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          value={form.cpf}
-          onChange={(e) => set('cpf', e.target.value)}
-          placeholder="000.000.000-00"
-        />
-      </Field>
-      <Field id="auth-password" label="Nova senha" error={errors.password} hint={PASSWORD_HINT} required>
-        <PasswordInput
-          id="auth-password"
-          value={form.password}
-          onChange={(v) => set('password', v)}
-          autoComplete="new-password"
-        />
-      </Field>
-      <Field id="auth-confirm" label="Confirme a nova senha" error={errors.confirm} required>
-        <PasswordInput
-          id="auth-confirm"
-          value={form.confirm}
-          onChange={(v) => set('confirm', v)}
-          autoComplete="new-password"
-        />
-      </Field>
-      <FormError message={errors.form} />
-      <SubmitButton busy={busy} busyLabel="Salvando…">
-        Redefinir senha
-      </SubmitButton>
-      <button type="button" className="button button--ghost" onClick={onCancel}>
+    <div className="auth__forgot">
+      <p>
+        Nesta versão, seu acesso fica salvo somente neste navegador. Por isso, ainda não é possível enviar um e-mail
+        para redefinir a senha.
+      </p>
+      {google ? (
+        <>
+          <p>
+            Se o seu e-mail for uma conta Google, use o botão abaixo com esse mesmo e-mail: você entra na sua conta e
+            encontra seus dados como deixou.
+          </p>
+          <GoogleSignIn remember={remember} />
+        </>
+      ) : (
+        <p>A recuperação de senha por e-mail fará parte da versão com contas em servidor.</p>
+      )}
+      <button type="button" className="button button--secondary auth__submit" onClick={onBack}>
         Voltar para entrar
       </button>
-    </form>
+    </div>
   );
 }

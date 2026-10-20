@@ -218,6 +218,54 @@
   color: var(--concluida);
 }
 
+.auth__google {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.auth__google-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth__google-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.auth__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth__divider::before,
+.auth__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth__forgot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--text-soft);
+}
+
 .password-input {
   position: relative;
 }

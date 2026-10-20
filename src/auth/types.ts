@@ -1,26 +1,20 @@
 /** Dados da pessoa conectada que as telas podem usar. */
 export interface User {
   id: string;
+  /** Nome de usuário: como a plataforma chama a pessoa. */
   name: string;
   email: string;
-  /** CPF parcialmente oculto, só para exibição (***.982.247-**). */
-  cpfMasked: string;
+  /** Como a conta foi criada. */
+  provider: 'password' | 'google';
 }
 
 export interface RegisterInput {
   name: string;
   email: string;
-  cpf: string;
   password: string;
 }
 
-export interface ResetPasswordInput {
-  email: string;
-  cpf: string;
-  password: string;
-}
-
-export type AuthField = 'name' | 'email' | 'cpf' | 'password' | 'identifier';
+export type AuthField = 'name' | 'email' | 'password';
 
 /** Erro de acesso com mensagem pronta para exibir e o campo relacionado. */
 export class AuthError extends Error {
@@ -44,9 +38,10 @@ export class AuthError extends Error {
 export interface AuthService {
   currentUser(): Promise<User | null>;
   register(input: RegisterInput, options: { remember: boolean }): Promise<User>;
-  login(identifier: string, password: string, options: { remember: boolean }): Promise<User>;
+  login(email: string, password: string, options: { remember: boolean }): Promise<User>;
+  /** Entra (ou cria a conta) com a credencial devolvida pelo botão do Google. */
+  signInWithGoogle(credential: string, options: { remember: boolean }): Promise<User>;
   logout(): Promise<void>;
-  resetPassword(input: ResetPasswordInput): Promise<void>;
   updateProfile(userId: string, profile: { name: string }): Promise<User>;
   /** Avisa quando a sessão muda em outra aba. */
   subscribe?(listener: () => void): () => void;

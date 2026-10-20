@@ -56,7 +56,7 @@ export function OverviewPage() {
   }, [data.activities, today]);
 
   const { progress } = summary;
-  const name = user.name.trim().split(/\s+/)[0] ?? '';
+  const name = user.name.trim();
 
   return (
     <div className="page overview">
@@ -262,19 +262,21 @@ function StudySummary({
   pending,
   overdue,
   dueSoon,
-  completed,
   total,
 }: {
   pending: unknown[];
   overdue: unknown[];
   dueSoon: unknown[];
-  completed: number;
   total: number;
 }) {
   if (total === 0) return <>Você ainda não tem atividades cadastradas. Que tal começar agora?</>;
   if (pending.length === 0) return <>Parabéns! Você concluiu todas as {total} atividades cadastradas.</>;
 
-  const parts: string[] = [`Você concluiu ${completed} de ${total} atividades`];
+  const parts: string[] = [
+    pending.length === 1
+      ? 'Você tem 1 atividade a ser feita'
+      : `Você tem ${pending.length} atividades a serem feitas`,
+  ];
   if (overdue.length > 0) {
     parts.push(overdue.length === 1 ? '1 está atrasada' : `${overdue.length} estão atrasadas`);
   }

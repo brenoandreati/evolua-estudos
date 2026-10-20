@@ -123,7 +123,7 @@ export function useStudyCommands() {
   const logout = useCallback(async () => {
     const ok = await confirm({
       title: 'Sair da conta?',
-      message: <p>Seus dados continuam salvos neste aparelho. Para voltar, entre com seu e-mail ou CPF e senha.</p>,
+      message: <p>Seus dados continuam salvos neste aparelho. Para voltar, entre com seu e-mail e senha ou com o Google.</p>,
       confirmLabel: 'Sair',
       tone: 'primary',
     });

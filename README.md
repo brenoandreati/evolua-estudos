@@ -27,21 +27,44 @@ configurar o servidor.
 ## Acesso
 
 Ao abrir o painel, aparece a tela de acesso com a marca Evolua. Na primeira vez, a pessoa clica em
-**Criar acesso** e informa e-mail, CPF (validado pelos dígitos verificadores) e uma senha (mínimo de 8
-caracteres, com letras e números). Depois, entra com **e-mail ou CPF** e a senha.
+**Criar acesso** e escolhe:
+
+- **Continuar com o Google** (quando ativado, veja abaixo): a conta é criada com o nome e o e-mail do Google; ou
+- **E-mail e senha**: informa o **nome de usuário** (como a plataforma vai chamá-la), o e-mail e uma senha
+  (mínimo de 8 caracteres, com letras e números).
+
+Depois disso, a Visão geral cumprimenta pelo nome: *“Bom dia, Breno! Você tem 8 atividades a serem feitas…”*.
+O nome de usuário pode ser alterado em **Configurações**.
 
 - **Manter conectado neste aparelho:** marcado, o acesso continua ao fechar o navegador; desmarcado, vale
   só até fechar a aba.
-- **Esqueci minha senha:** cria uma nova senha conferindo o e-mail e o CPF cadastrados.
-- **Sair da conta:** fica no rodapé do menu lateral (computador) e em Configurações (celular).
+- **Sair da conta:** no rodapé do menu lateral (computador) e em Configurações (celular).
 - Cada conta tem os próprios dados. Se alguém já usava o painel antes do acesso existir, a primeira conta
   criada no aparelho fica com esses dados.
 
-**Como funciona por baixo:** as contas ficam guardadas neste navegador. A senha e o CPF são salvos apenas
-como *hash* PBKDF2-SHA-256 com sal aleatório, nunca em texto puro. Isso organiza o acesso de quem usa o
-mesmo aparelho, mas **não é um controle de acesso pela internet**: qualquer pessoa pode criar uma conta no
-próprio navegador, e quem tem conhecimento técnico consegue contornar a tela. Para liberar o acesso só a
-pessoas autorizadas, e para entrar de qualquer aparelho, é preciso um servidor (veja abaixo).
+### Ativar o “Continuar com o Google”
+
+O botão só aparece quando o site tem um **Client ID** do Google configurado:
+
+1. Em [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials), crie uma
+   credencial **ID do cliente OAuth** do tipo **Aplicativo da Web**.
+2. Em **Origens JavaScript autorizadas**, cadastre o endereço onde o painel fica publicado (por exemplo,
+   `https://seu-usuario.github.io`) e, para testes locais, `http://localhost:5173`.
+3. Copie `.env.example` para `.env` e preencha `VITE_GOOGLE_CLIENT_ID` com o ID gerado.
+4. Gere o site de novo (`npm run build`).
+
+### Limites desta versão
+
+As contas ficam guardadas **neste navegador**. A senha é salva apenas como *hash* PBKDF2-SHA-256 com sal
+aleatório, nunca em texto puro. Isso organiza o acesso de quem usa o mesmo aparelho, mas:
+
+- qualquer pessoa pode criar uma conta no próprio navegador (não é um controle de quem pode entrar);
+- a conta criada no computador não existe no celular;
+- sem servidor, não há como enviar e-mail para **redefinir a senha**. Quem entrou com o Google (ou usa o
+  mesmo e-mail do Google) consegue voltar pelo botão do Google.
+
+Para contas que funcionam em qualquer aparelho, recuperação de senha por e-mail e controle de quem pode
+entrar, é preciso um servidor (veja abaixo).
 
 ## O que o sistema faz
 
@@ -106,7 +129,7 @@ confirmação.
 - **Dados de estudo:** toda leitura e gravação passa pela interface `StudyRepository`
   (`src/data/repository.ts`). Para guardar em um servidor, crie outra implementação e troque-a em
   `src/data/index.ts`.
-- **Acesso:** cadastro, entrada, saída e redefinição de senha passam pela interface `AuthService`
+- **Acesso:** cadastro, entrada (e-mail e senha ou Google) e saída passam pela interface `AuthService`
   (`src/auth/types.ts`). Para contas na internet (por exemplo, com Supabase ou Firebase), crie outra
   implementação e troque-a em `src/auth/index.ts`.
 
@@ -116,7 +139,7 @@ Telas e regras de negócio não precisam mudar.
 
 ```
 src/
-├── auth/          Acesso: cadastro, entrada, CPF, senha protegida e tela de acesso
+├── auth/          Acesso: cadastro, entrada com e-mail/senha ou Google e tela de acesso
 ├── domain/        Regras puras: tipos, datas, urgência, filtros, progresso, dados iniciais
 ├── data/          Persistência (interface StudyRepository + implementação localStorage)
 ├── state/         Estado da aplicação (reducer), ações com confirmação/avisos e janelas
@@ -136,6 +159,6 @@ npm run test:e2e   # testes no navegador, em tela de computador e de celular
 
 Os testes de ponta a ponta simulam datas diferentes para conferir prazos vencidos e a virada do dia, e cobrem
 cadastro, edição, exclusão, conclusão e reabertura de atividades, cálculo de porcentagens, filtros, calendário,
-persistência e o acesso (cadastro, entrada por e-mail ou CPF, senha errada, contas separadas e redefinição
-de senha). Na primeira execução local, instale o navegador do Playwright com
+persistência e o acesso (cadastro com nome de usuário, senha errada, contas separadas e saudação). O login
+com Google é coberto por testes unitários. Na primeira execução local, instale o navegador do Playwright com
 `npx playwright install chromium`.

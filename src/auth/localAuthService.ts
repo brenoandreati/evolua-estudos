@@ -1,34 +1,26 @@
 import { createId } from '../state/id';
-import { maskCpf, onlyDigits } from './cpf';
 import { deriveHash, randomSalt, safeEqual } from './crypto';
-import {
-  AuthError,
-  type AuthField,
-  type AuthService,
-  type RegisterInput,
-  type ResetPasswordInput,
-  type User,
-} from './types';
-import { cpfError, emailError, normalizeEmail, passwordError } from './validation';
+import { GOOGLE_CLIENT_ID, parseGoogleCredential } from './google';
+import { AuthError, type AuthField, type AuthService, type RegisterInput, type User } from './types';
+import { emailError, nameError, normalizeEmail, passwordError } from './validation';
 
 export const ACCOUNTS_KEY = 'evolua-estudos:contas:v1';
 export const SESSION_KEY = 'evolua-estudos:sessao:v1';
 
 const PASSWORD_ITERATIONS = 210_000;
-const CPF_ITERATIONS = 60_000;
 
-/** Conta como fica salva: senha e CPF apenas como hash com sal. */
+/** Conta como fica salva: a senha só como hash com sal. */
 interface StoredAccount {
   id: string;
   name: string;
   email: string;
-  cpfMasked: string;
-  cpfHash: string;
-  cpfSalt: string;
-  cpfIterations: number;
-  passwordHash: string;
-  passwordSalt: string;
-  passwordIterations: number;
+  provider: 'password' | 'google';
+  /** Ausentes em contas criadas pelo Google. */
+  passwordHash?: string;
+  passwordSalt?: string;
+  passwordIterations?: number;
+  /** Identificador da conta Google, quando vinculada. */
+  googleSub?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,27 +33,35 @@ interface Session {
 interface LocalAuthOptions {
   persistent?: Storage;
   temporary?: Storage;
+  googleClientId?: string;
   /** Chamado ao criar a primeira conta deste aparelho (ex.: adotar dados antigos). */
   onFirstAccount?: (userId: string) => void;
 }
 
 function toUser(account: StoredAccount): User {
-  return { id: account.id, name: account.name, email: account.email, cpfMasked: account.cpfMasked };
+  return {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    provider: account.provider === 'google' ? 'google' : 'password',
+  };
 }
 
 /**
- * Acesso com e-mail, CPF e senha guardado neste navegador.
+ * Acesso com e-mail e senha (ou Google) guardado neste navegador.
  * As contas ficam no `localStorage`; a sessão fica no `localStorage`
  * ("manter conectado") ou no `sessionStorage` (até fechar o navegador).
  */
 export class LocalAuthService implements AuthService {
   private readonly persistent: Storage;
   private readonly temporary: Storage;
+  private readonly googleClientId: string;
   private readonly onFirstAccount?: (userId: string) => void;
 
   constructor(options: LocalAuthOptions = {}) {
     this.persistent = options.persistent ?? globalThis.localStorage;
     this.temporary = options.temporary ?? globalThis.sessionStorage;
+    this.googleClientId = options.googleClientId ?? GOOGLE_CLIENT_ID;
     this.onFirstAccount = options.onFirstAccount;
   }
 
@@ -117,13 +117,9 @@ export class LocalAuthService implements AuthService {
     }
   }
 
-  private async findByCpf(accounts: StoredAccount[], cpf: string): Promise<StoredAccount | undefined> {
-    const digits = onlyDigits(cpf);
-    for (const account of accounts) {
-      const hash = await deriveHash(digits, account.cpfSalt, account.cpfIterations);
-      if (safeEqual(hash, account.cpfHash)) return account;
-    }
-    return undefined;
+  private addAccount(accounts: StoredAccount[], account: StoredAccount): void {
+    this.writeAccounts([...accounts, account]);
+    if (accounts.length === 0) this.onFirstAccount?.(account.id);
   }
 
   // ----- operações -----
@@ -142,8 +138,8 @@ export class LocalAuthService implements AuthService {
   async register(input: RegisterInput, options: { remember: boolean }): Promise<User> {
     const email = normalizeEmail(input.email);
     const problems: [string | undefined, AuthField][] = [
+      [nameError(input.name), 'name'],
       [emailError(email), 'email'],
-      [cpfError(input.cpf), 'cpf'],
       [passwordError(input.password), 'password'],
     ];
     for (const [message, field] of problems) if (message) throw new AuthError(message, field);
@@ -152,21 +148,14 @@ export class LocalAuthService implements AuthService {
     if (accounts.some((a) => a.email === email)) {
       throw new AuthError('Já existe uma conta com este e-mail neste aparelho. Use “Entrar”.', 'email');
     }
-    if (await this.findByCpf(accounts, input.cpf)) {
-      throw new AuthError('Já existe uma conta com este CPF neste aparelho. Use “Entrar”.', 'cpf');
-    }
 
     const now = new Date().toISOString();
-    const cpfSalt = randomSalt();
     const passwordSalt = randomSalt();
     const account: StoredAccount = {
       id: createId('conta'),
       name: input.name.trim(),
       email,
-      cpfMasked: maskCpf(input.cpf),
-      cpfHash: await deriveHash(onlyDigits(input.cpf), cpfSalt, CPF_ITERATIONS),
-      cpfSalt,
-      cpfIterations: CPF_ITERATIONS,
+      provider: 'password',
       passwordHash: await deriveHash(input.password, passwordSalt, PASSWORD_ITERATIONS),
       passwordSalt,
       passwordIterations: PASSWORD_ITERATIONS,
@@ -174,24 +163,21 @@ export class LocalAuthService implements AuthService {
       updatedAt: now,
     };
 
-    this.writeAccounts([...accounts, account]);
-    if (accounts.length === 0) this.onFirstAccount?.(account.id);
+    this.addAccount(accounts, account);
     this.startSession(account.id, options.remember);
     return toUser(account);
   }
 
-  async login(identifier: string, password: string, options: { remember: boolean }): Promise<User> {
-    const wrong = new AuthError('E-mail/CPF ou senha incorretos.', 'identifier');
-    if (!identifier.trim()) throw new AuthError('Informe seu e-mail ou CPF.', 'identifier');
+  async login(email: string, password: string, options: { remember: boolean }): Promise<User> {
+    if (!email.trim()) throw new AuthError('Informe seu e-mail.', 'email');
     if (!password) throw new AuthError('Informe sua senha.', 'password');
 
-    const accounts = this.readAccounts();
-    const account = identifier.includes('@')
-      ? accounts.find((a) => a.email === normalizeEmail(identifier))
-      : onlyDigits(identifier).length === 11
-        ? await this.findByCpf(accounts, identifier)
-        : undefined;
-    if (!account) throw wrong;
+    const account = this.readAccounts().find((a) => a.email === normalizeEmail(email));
+    if (account && !account.passwordHash) {
+      throw new AuthError('Esta conta foi criada com o Google. Use “Continuar com Google”.', 'email');
+    }
+    const wrong = new AuthError('E-mail ou senha incorretos.', 'email');
+    if (!account?.passwordHash || !account.passwordSalt || !account.passwordIterations) throw wrong;
 
     const hash = await deriveHash(password, account.passwordSalt, account.passwordIterations);
     if (!safeEqual(hash, account.passwordHash)) throw wrong;
@@ -200,33 +186,42 @@ export class LocalAuthService implements AuthService {
     return toUser(account);
   }
 
+  async signInWithGoogle(credential: string, options: { remember: boolean }): Promise<User> {
+    const profile = parseGoogleCredential(credential, this.googleClientId);
+    const email = normalizeEmail(profile.email);
+    const accounts = this.readAccounts();
+    const existing = accounts.find((a) => a.googleSub === profile.sub) ?? accounts.find((a) => a.email === email);
+
+    if (existing) {
+      // E-mail confirmado pelo Google: pode vincular a uma conta já criada com o mesmo e-mail.
+      const linked = existing.googleSub ? existing : { ...existing, googleSub: profile.sub, updatedAt: new Date().toISOString() };
+      if (linked !== existing) this.writeAccounts(accounts.map((a) => (a.id === existing.id ? linked : a)));
+      this.startSession(linked.id, options.remember);
+      return toUser(linked);
+    }
+
+    const now = new Date().toISOString();
+    const account: StoredAccount = {
+      id: createId('conta'),
+      name: profile.givenName || profile.name || email.split('@')[0],
+      email,
+      provider: 'google',
+      googleSub: profile.sub,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.addAccount(accounts, account);
+    this.startSession(account.id, options.remember);
+    return toUser(account);
+  }
+
   async logout(): Promise<void> {
     this.clearSession();
   }
 
-  async resetPassword(input: ResetPasswordInput): Promise<void> {
-    const problem = passwordError(input.password);
-    if (problem) throw new AuthError(problem, 'password');
-
-    const accounts = this.readAccounts();
-    const account = accounts.find((a) => a.email === normalizeEmail(input.email));
-    const notFound = new AuthError('Não encontramos uma conta com este e-mail e CPF neste aparelho.', 'email');
-    if (!account) throw notFound;
-    const cpfHash = await deriveHash(onlyDigits(input.cpf), account.cpfSalt, account.cpfIterations);
-    if (!safeEqual(cpfHash, account.cpfHash)) throw notFound;
-
-    const passwordSalt = randomSalt();
-    const updated: StoredAccount = {
-      ...account,
-      passwordSalt,
-      passwordIterations: PASSWORD_ITERATIONS,
-      passwordHash: await deriveHash(input.password, passwordSalt, PASSWORD_ITERATIONS),
-      updatedAt: new Date().toISOString(),
-    };
-    this.writeAccounts(accounts.map((a) => (a.id === account.id ? updated : a)));
-  }
-
   async updateProfile(userId: string, profile: { name: string }): Promise<User> {
+    const problem = nameError(profile.name);
+    if (problem) throw new AuthError(problem, 'name');
     const accounts = this.readAccounts();
     const account = accounts.find((a) => a.id === userId);
     if (!account) throw new AuthError('Conta não encontrada.');

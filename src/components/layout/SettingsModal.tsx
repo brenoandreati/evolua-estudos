@@ -13,12 +13,18 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const { restoreInitialData, logout } = useStudyCommands();
   const { showToast } = useToast();
   const [name, setName] = useState(user.name);
+  const [nameError, setNameError] = useState<string>();
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!name.trim()) {
+      setNameError('Informe como você quer ser chamado(a).');
+      document.getElementById('settings-name')?.focus();
+      return;
+    }
     try {
       await updateProfile({ name });
-      showToast('Preferências salvas.');
+      showToast('Nome de usuário atualizado.');
       onClose();
     } catch {
       showToast('Não foi possível salvar. Tente novamente.', { tone: 'error' });
@@ -42,14 +48,22 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       }
     >
       <form id="settings-form" className="form" onSubmit={onSubmit}>
-        <Field id="settings-name" label="Como você quer ser chamado(a)?" hint="Usado na saudação da Visão geral.">
+        <Field
+          id="settings-name"
+          label="Nome de usuário"
+          hint="É assim que a plataforma chama você na Visão geral."
+          error={nameError}
+        >
           <input
             id="settings-name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameError(undefined);
+            }}
             placeholder="Seu nome"
-            maxLength={60}
+            maxLength={40}
             data-autofocus
           />
         </Field>
@@ -65,8 +79,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <dd>{user.email}</dd>
           </div>
           <div>
-            <dt>CPF</dt>
-            <dd>{user.cpfMasked}</dd>
+            <dt>Forma de acesso</dt>
+            <dd>{user.provider === 'google' ? 'Conta Google' : 'E-mail e senha'}</dd>
           </div>
         </dl>
         <button type="button" className="button button--secondary" onClick={() => void logout()}>

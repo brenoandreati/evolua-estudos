@@ -1,16 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createAuthService } from '.';
-import type { AuthService, RegisterInput, ResetPasswordInput, User } from './types';
+import type { AuthService, RegisterInput, User } from './types';
 
 type AuthState = { status: 'loading' } | { status: 'signedOut' } | { status: 'signedIn'; user: User };
 
 interface AuthContextValue {
   state: AuthState;
   register(input: RegisterInput, remember: boolean): Promise<User>;
-  login(identifier: string, password: string, remember: boolean): Promise<User>;
+  login(email: string, password: string, remember: boolean): Promise<User>;
+  signInWithGoogle(credential: string, remember: boolean): Promise<User>;
   logout(): Promise<void>;
-  resetPassword(input: ResetPasswordInput): Promise<void>;
   updateProfile(profile: { name: string }): Promise<User>;
 }
 
@@ -40,9 +40,9 @@ export function AuthProvider({ children, service }: { children: ReactNode; servi
     () => ({
       state,
       register: (input, remember) => auth.register(input, { remember }).then(signedIn),
-      login: (identifier, password, remember) => auth.login(identifier, password, { remember }).then(signedIn),
+      login: (email, password, remember) => auth.login(email, password, { remember }).then(signedIn),
+      signInWithGoogle: (credential, remember) => auth.signInWithGoogle(credential, { remember }).then(signedIn),
       logout: () => auth.logout().then(() => setState({ status: 'signedOut' })),
-      resetPassword: (input) => auth.resetPassword(input),
       updateProfile: (profile) => {
         if (state.status !== 'signedIn') return Promise.reject(new Error('Nenhuma conta conectada.'));
         return auth.updateProfile(state.user.id, profile).then(signedIn);
