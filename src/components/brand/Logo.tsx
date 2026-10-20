@@ -78,11 +78,14 @@ export function Logo({ compact = false }: { compact?: boolean }) {
  */
 export function EvoluaNegocioLogo({ tone = 'brand' }: { tone?: 'brand' | 'light' }) {
   return (
-    <span
-      className={`evolua-negocio evolua-negocio--${tone}`}
-      role="img"
-      aria-label="Evolua Meu Negócio"
-      style={{ '--evolua-negocio-logo': `url(${evoluaNegocioLogo})` } as CSSProperties}
-    />
+    <span className={`evolua-negocio evolua-negocio--${tone}`}>
+      <span className="evolua-negocio__label">Uma iniciativa</span>
+      <span
+        className="evolua-negocio__logo"
+        role="img"
+        aria-label="Evolua Meu Negócio"
+        style={{ '--evolua-negocio-logo': `url(${evoluaNegocioLogo})` } as CSSProperties}
+      />
+    </span>
   );
 }

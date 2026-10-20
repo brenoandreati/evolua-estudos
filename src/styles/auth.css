@@ -361,6 +361,20 @@
 
 /* ---------- Logo Evolua Meu Negócio ---------- */
 .evolua-negocio {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.evolua-negocio__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.evolua-negocio__logo {
   display: block;
   width: 220px;
   aspect-ratio: 1200 / 310;
@@ -373,7 +387,19 @@
   color: #fff;
 }
 
+.evolua-negocio--light .evolua-negocio__label {
+  color: rgb(255 255 255 / 0.72);
+}
+
 .evolua-negocio--brand {
-  width: 180px;
+  align-items: center;
   color: var(--brand-600);
+}
+
+.evolua-negocio--brand .evolua-negocio__label {
+  color: var(--text-muted);
+}
+
+.evolua-negocio--brand .evolua-negocio__logo {
+  width: 180px;
 }
