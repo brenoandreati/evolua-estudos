@@ -359,57 +359,21 @@
   }
 }
 
-/* ---------- Assinatura Evolua Meu Negócio ---------- */
+/* ---------- Logo Evolua Meu Negócio ---------- */
 .evolua-negocio {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.evolua-negocio__label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.evolua-negocio__lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.evolua-negocio__name {
-  font-size: var(--text-md);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.evolua-negocio__name strong {
-  font-weight: 800;
+  display: block;
+  width: 220px;
+  aspect-ratio: 1200 / 310;
+  background-color: currentColor;
+  -webkit-mask: var(--evolua-negocio-logo) center / contain no-repeat;
+  mask: var(--evolua-negocio-logo) center / contain no-repeat;
 }
 
 .evolua-negocio--light {
   color: #fff;
 }
 
-.evolua-negocio--light .evolua-negocio__name {
-  font-size: var(--text-lg);
-}
-
-.evolua-negocio--light .evolua-negocio__label {
-  color: rgb(255 255 255 / 0.7);
-}
-
 .evolua-negocio--brand {
-  align-items: center;
-  color: var(--gray-700);
-}
-
-.evolua-negocio--brand .evolua-negocio__label {
-  color: var(--text-muted);
-}
-
-.evolua-negocio--brand .evolua-negocio__mark {
+  width: 180px;
   color: var(--brand-600);
 }
