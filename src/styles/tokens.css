@@ -1,0 +1,93 @@
+/* Design tokens — cores, tipografia, espaçamento e sombras. */
+:root {
+  /* Marca (azul dos materiais da Evolua) */
+  --brand-50: #eef4fe;
+  --brand-100: #dce8fd;
+  --brand-200: #b9d0fb;
+  --brand-300: #8bb2f7;
+  --brand-500: #3d7cf0;
+  --brand-600: #105ce8;
+  --brand-700: #0b4ac0;
+  --brand-800: #0c3d96;
+
+  /* Neutros */
+  --gray-0: #ffffff;
+  --gray-25: #fbfcfd;
+  --gray-50: #f5f7fa;
+  --gray-100: #eef1f5;
+  --gray-200: #e3e7ed;
+  --gray-300: #cdd3dc;
+  --gray-400: #9aa3b2;
+  --gray-500: #6b7486;
+  --gray-600: #4d5566;
+  --gray-700: #343b4a;
+  --gray-800: #1f2533;
+  --gray-900: #121722;
+
+  /* Status de urgência — sempre as mesmas cores em todo o sistema */
+  --atrasada: #dc2626;
+  --atrasada-strong: #b91c1c;
+  --atrasada-soft: #fee2e2;
+  --urgente: #ea580c;
+  --urgente-strong: #c2410c;
+  --urgente-soft: #ffedd5;
+  --atencao: #eab308;
+  --atencao-strong: #a16207;
+  --atencao-soft: #fef9c3;
+  --no_prazo: var(--brand-600);
+  --no_prazo-strong: var(--brand-700);
+  --no_prazo-soft: var(--brand-100);
+  --concluida: #16a34a;
+  --concluida-strong: #15803d;
+  --concluida-soft: #dcfce7;
+
+  /* Superfícies */
+  --bg: var(--gray-50);
+  --surface: var(--gray-0);
+  --surface-muted: var(--gray-25);
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --text: var(--gray-900);
+  --text-muted: var(--gray-500);
+  --text-soft: var(--gray-600);
+
+  /* Tipografia */
+  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.5rem;
+
+  /* Espaçamento */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* Formas */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+  --shadow-xs: 0 1px 2px rgb(18 23 34 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(18 23 34 / 0.06), 0 1px 2px rgb(18 23 34 / 0.04);
+  --shadow-md: 0 6px 16px -4px rgb(18 23 34 / 0.1), 0 2px 6px -2px rgb(18 23 34 / 0.06);
+  --shadow-lg: 0 24px 48px -12px rgb(18 23 34 / 0.25);
+  --focus-ring: 0 0 0 3px rgb(16 92 232 / 0.28);
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --topbar-height: 64px;
+  --bottom-nav-height: 64px;
+  --content-max: 1200px;
+  --transition: 160ms ease;
+}
