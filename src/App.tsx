@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthScreen } from './auth/AuthScreen';
+import { WelcomeSplash, markIntroShown, shouldShowIntro } from './components/brand/WelcomeSplash';
 import { AppShell } from './components/layout/AppShell';
 import { LoadingScreen } from './components/ui/primitives';
 import { ToastProvider } from './components/ui/ToastProvider';
@@ -80,9 +81,27 @@ function SignedInApp({ userId }: { userId: string }) {
 
 function AccessGate() {
   const { state } = useAuth();
+  const [showIntro, setShowIntro] = useState(false);
+  const userId = state.status === 'signedIn' ? state.user.id : null;
+
+  // Ao entrar na plataforma, toca a abertura (uma vez por visita).
+  useEffect(() => {
+    if (userId && shouldShowIntro()) {
+      markIntroShown();
+      setShowIntro(true);
+    }
+  }, [userId]);
+
+  const finishIntro = useCallback(() => setShowIntro(false), []);
+
   if (state.status === 'loading') return <LoadingScreen />;
   if (state.status === 'signedOut') return <AuthScreen />;
-  return <SignedInApp key={state.user.id} userId={state.user.id} />;
+  return (
+    <>
+      <SignedInApp key={state.user.id} userId={state.user.id} />
+      {showIntro && <WelcomeSplash name={state.user.name} onDone={finishIntro} />}
+    </>
+  );
 }
 
 export function App() {

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import {
   BookOpen,
   CalendarClock,
+  Check,
   CircleCheckBig,
   Clock,
   ListTodo,
@@ -72,164 +73,174 @@ export function OverviewPage() {
         }
       />
 
-      <div className="stats" data-testid="stats">
-        <StatCard
-          label="Pendentes"
-          value={summary.pending.length}
-          icon={ListTodo}
-          tone="brand"
-          href={paths.activities({ ver: 'pendentes' })}
+      {progress.total === 0 ? (
+        <GettingStarted
+          hasDisciplines={data.disciplines.length > 0}
+          onNewDiscipline={openNewDiscipline}
+          onNewActivity={() => openNewActivity()}
         />
-        <StatCard
-          label="Atrasadas"
-          value={summary.overdue.length}
-          icon={TriangleAlert}
-          tone="atrasada"
-          href={paths.activities({ ver: 'atrasadas' })}
-        />
-        <StatCard
-          label="Prazo próximo"
-          hint="até 5 dias"
-          value={summary.dueSoon.length}
-          icon={Clock}
-          tone="urgente"
-          href={paths.activities({ ver: 'prazo_proximo' })}
-        />
-        <StatCard
-          label="Concluídas"
-          value={summary.completed}
-          icon={CircleCheckBig}
-          tone="concluida"
-          href={paths.completed}
-        />
-      </div>
+      ) : (
+        <>
+          <div className="stats" data-testid="stats">
+            <StatCard
+              label="Pendentes"
+              value={summary.pending.length}
+              icon={ListTodo}
+              tone="brand"
+              href={paths.activities({ ver: 'pendentes' })}
+            />
+            <StatCard
+              label="Atrasadas"
+              value={summary.overdue.length}
+              icon={TriangleAlert}
+              tone="atrasada"
+              href={paths.activities({ ver: 'atrasadas' })}
+            />
+            <StatCard
+              label="Prazo próximo"
+              hint="até 5 dias"
+              value={summary.dueSoon.length}
+              icon={Clock}
+              tone="urgente"
+              href={paths.activities({ ver: 'prazo_proximo' })}
+            />
+            <StatCard
+              label="Concluídas"
+              value={summary.completed}
+              icon={CircleCheckBig}
+              tone="concluida"
+              href={paths.completed}
+            />
+          </div>
 
-      <div className="overview__grid">
-        <div className="overview__main">
-          <Section
-            title="Precisa da minha atenção"
-            icon={TriangleAlert}
-            className="section--attention"
-            description="Atividades atrasadas e com prazo nos próximos 5 dias."
-            link={
-              summary.attention.length > ATTENTION_LIMIT
-                ? { href: paths.activities({ ver: 'pendentes' }), label: 'Ver todas' }
-                : undefined
-            }
-          >
-            {summary.attention.length > 0 ? (
-              <ActivityList activities={summary.attention.slice(0, ATTENTION_LIMIT)} label="Precisa da minha atenção" />
-            ) : (
-              <EmptyState
-                icon={PartyPopper}
-                tone="success"
-                title="Tudo em dia!"
-                description={
-                  progress.total === 0
-                    ? 'Cadastre suas atividades para acompanhar os prazos por aqui.'
-                    : 'Nenhuma atividade atrasada ou vencendo nos próximos 5 dias.'
+          <div className="overview__grid">
+            <div className="overview__main">
+              <Section
+                title="Precisa da minha atenção"
+                icon={TriangleAlert}
+                className="section--attention"
+                description="Atividades atrasadas e com prazo nos próximos 5 dias."
+                link={
+                  summary.attention.length > ATTENTION_LIMIT
+                    ? { href: paths.activities({ ver: 'pendentes' }), label: 'Ver todas' }
+                    : undefined
                 }
-              />
-            )}
-          </Section>
+              >
+                {summary.attention.length > 0 ? (
+                  <ActivityList activities={summary.attention.slice(0, ATTENTION_LIMIT)} label="Precisa da minha atenção" />
+                ) : (
+                  <EmptyState
+                    icon={PartyPopper}
+                    tone="success"
+                    title="Tudo em dia!"
+                    description={
+                      progress.total === 0
+                        ? 'Cadastre suas atividades para acompanhar os prazos por aqui.'
+                        : 'Nenhuma atividade atrasada ou vencendo nos próximos 5 dias.'
+                    }
+                  />
+                )}
+              </Section>
 
-          <Section
-            title="Próximas atividades"
-            icon={CalendarClock}
-            className="section--upcoming"
-            description="Demais pendências, da mais próxima para a mais distante."
-            link={{ href: paths.activities({ ver: 'pendentes' }), label: 'Ver todas' }}
-          >
-            {summary.upcoming.length > 0 ? (
-              <ActivityList activities={summary.upcoming.slice(0, UPCOMING_LIMIT)} label="Próximas atividades" />
-            ) : (
-              <EmptyState
-                icon={Sparkles}
-                title={summary.pending.length > 0 ? 'Nada além do que está acima' : 'Nenhuma atividade pendente'}
-                description={
-                  summary.pending.length > 0
-                    ? 'Todas as suas pendências já aparecem em “Precisa da minha atenção”.'
-                    : 'Adicione uma nova atividade quando surgir algo para fazer.'
-                }
-              />
-            )}
-          </Section>
-        </div>
+              <Section
+                title="Próximas atividades"
+                icon={CalendarClock}
+                className="section--upcoming"
+                description="Demais pendências, da mais próxima para a mais distante."
+                link={{ href: paths.activities({ ver: 'pendentes' }), label: 'Ver todas' }}
+              >
+                {summary.upcoming.length > 0 ? (
+                  <ActivityList activities={summary.upcoming.slice(0, UPCOMING_LIMIT)} label="Próximas atividades" />
+                ) : (
+                  <EmptyState
+                    icon={Sparkles}
+                    title={summary.pending.length > 0 ? 'Nada além do que está acima' : 'Nenhuma atividade pendente'}
+                    description={
+                      summary.pending.length > 0
+                        ? 'Todas as suas pendências já aparecem em “Precisa da minha atenção”.'
+                        : 'Adicione uma nova atividade quando surgir algo para fazer.'
+                    }
+                  />
+                )}
+              </Section>
+            </div>
 
-        <aside className="overview__side">
-          <section className="card progress-card" aria-labelledby="meu-progresso">
-            <header className="progress-card__header">
-              <h2 id="meu-progresso" className="section__title">
-                Meu progresso
-              </h2>
-              <BarsMark width={22} className="progress-card__mark" />
-            </header>
-            <p className="progress-card__percent" data-testid="overall-percent">
-              {progress.percent}%
-            </p>
-            <ProgressBar value={progress.ratio} label="Progresso geral do curso" size="lg" />
-            {progress.total > 0 ? (
-              <p className="progress-card__caption" data-testid="overall-caption">
-                {progress.completed} de {progress.total} atividades concluídas
-                {progress.ratio % 1 !== 0 && <> ({formatPercent(progress.ratio)})</>}
-              </p>
-            ) : (
-              <p className="progress-card__caption">
-                Nenhuma atividade cadastrada.{' '}
-                <button type="button" className="link-button" onClick={() => openNewActivity()}>
-                  Cadastre sua primeira atividade
-                </button>{' '}
-                para acompanhar o progresso.
-              </p>
-            )}
+            <aside className="overview__side">
+              <section className="card progress-card" aria-labelledby="meu-progresso">
+                <header className="progress-card__header">
+                  <h2 id="meu-progresso" className="section__title">
+                    Meu progresso
+                  </h2>
+                  <BarsMark width={22} className="progress-card__mark" />
+                </header>
+                <p className="progress-card__percent" data-testid="overall-percent">
+                  {progress.percent}%
+                </p>
+                <ProgressBar value={progress.ratio} label="Progresso geral do curso" size="lg" />
+                {progress.total > 0 ? (
+                  <p className="progress-card__caption" data-testid="overall-caption">
+                    {progress.completed} de {progress.total} atividades concluídas
+                    {progress.ratio % 1 !== 0 && <> ({formatPercent(progress.ratio)})</>}
+                  </p>
+                ) : (
+                  <p className="progress-card__caption">
+                    Nenhuma atividade cadastrada.{' '}
+                    <button type="button" className="link-button" onClick={() => openNewActivity()}>
+                      Cadastre sua primeira atividade
+                    </button>{' '}
+                    para acompanhar o progresso.
+                  </p>
+                )}
 
-            {data.disciplines.length > 0 && (
-              <ul className="progress-card__list">
-                {data.disciplines.map((d) => {
-                  const p = computeProgress(data.activities.filter((a) => a.disciplineId === d.id));
-                  return (
-                    <li key={d.id}>
-                      <a href={paths.discipline(d.id)} className="progress-card__row">
-                        <span className="progress-card__name">{d.name}</span>
-                        <span className="progress-card__value">
-                          {p.completed}/{p.total} · {p.percent}%
-                        </span>
-                      </a>
-                      <ProgressBar value={p.ratio} label={`Progresso de ${d.name}`} size="sm" />
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
+                {data.disciplines.length > 0 && (
+                  <ul className="progress-card__list">
+                    {data.disciplines.map((d) => {
+                      const p = computeProgress(data.activities.filter((a) => a.disciplineId === d.id));
+                      return (
+                        <li key={d.id}>
+                          <a href={paths.discipline(d.id)} className="progress-card__row">
+                            <span className="progress-card__name">{d.name}</span>
+                            <span className="progress-card__value">
+                              {p.completed}/{p.total} · {p.percent}%
+                            </span>
+                          </a>
+                          <ProgressBar value={p.ratio} label={`Progresso de ${d.name}`} size="sm" />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
 
-          <section className="card legend" aria-labelledby="legenda-cores">
-            <h2 id="legenda-cores" className="legend__title">
-              Legenda de prazos
+              <section className="card legend" aria-labelledby="legenda-cores">
+                <h2 id="legenda-cores" className="legend__title">
+                  Legenda de prazos
+                </h2>
+                <ul className="legend__list">
+                  <li><span className="dot dot--atrasada" /> Atrasada</li>
+                  <li><span className="dot dot--urgente" /> Urgente · 0 a 2 dias</li>
+                  <li><span className="dot dot--atencao" /> Atenção · 3 a 5 dias</li>
+                  <li><span className="dot dot--no_prazo" /> No prazo · mais de 5 dias</li>
+                  <li><span className="dot dot--concluida" /> Concluída</li>
+                </ul>
+              </section>
+            </aside>
+          </div>
+        </>
+      )}
+
+      {data.disciplines.length > 0 && (
+        <section className="overview__disciplines" aria-labelledby="disciplinas-titulo">
+          <header className="section__header section__header--bare">
+            <h2 id="disciplinas-titulo" className="section__title">
+              <BookOpen size={18} className="section__icon" aria-hidden />
+              Disciplinas
             </h2>
-            <ul className="legend__list">
-              <li><span className="dot dot--atrasada" /> Atrasada</li>
-              <li><span className="dot dot--urgente" /> Urgente · 0 a 2 dias</li>
-              <li><span className="dot dot--atencao" /> Atenção · 3 a 5 dias</li>
-              <li><span className="dot dot--no_prazo" /> No prazo · mais de 5 dias</li>
-              <li><span className="dot dot--concluida" /> Concluída</li>
-            </ul>
-          </section>
-        </aside>
-      </div>
-
-      <section className="overview__disciplines" aria-labelledby="disciplinas-titulo">
-        <header className="section__header section__header--bare">
-          <h2 id="disciplinas-titulo" className="section__title">
-            <BookOpen size={18} className="section__icon" aria-hidden />
-            Disciplinas
-          </h2>
-          <button type="button" className="button button--secondary button--sm" onClick={openNewDiscipline}>
-            <Plus size={16} aria-hidden />
-            Nova disciplina
-          </button>
-        </header>
-        {data.disciplines.length > 0 ? (
+            <button type="button" className="button button--secondary button--sm" onClick={openNewDiscipline}>
+              <Plus size={16} aria-hidden />
+              Nova disciplina
+            </button>
+          </header>
           <div className="discipline-grid">
             {data.disciplines.map((d) => (
               <DisciplineCard
@@ -239,21 +250,8 @@ export function OverviewPage() {
               />
             ))}
           </div>
-        ) : (
-          <div className="card">
-            <EmptyState
-              icon={BookOpen}
-              title="Nenhuma disciplina cadastrada"
-              description="Comece criando uma disciplina. Depois, adicione as atividades dela."
-              action={
-                <button type="button" className="button button--primary" onClick={openNewDiscipline}>
-                  Criar disciplina
-                </button>
-              }
-            />
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
@@ -315,5 +313,88 @@ function StatCard({
         </span>
       </span>
     </a>
+  );
+}
+
+/** Primeiros passos para quem ainda não cadastrou nenhuma atividade. */
+function GettingStarted({
+  hasDisciplines,
+  onNewDiscipline,
+  onNewActivity,
+}: {
+  hasDisciplines: boolean;
+  onNewDiscipline: () => void;
+  onNewActivity: () => void;
+}) {
+  const steps = [
+    {
+      title: 'Crie suas disciplinas',
+      text: 'As matérias do seu curso, como “Matemática” ou “Gestão de Pessoas”.',
+      done: hasDisciplines,
+    },
+    {
+      title: 'Cadastre as atividades',
+      text: 'Videoaulas, exercícios, provas e trabalhos, cada um com a data de início e o prazo.',
+      done: false,
+    },
+    {
+      title: 'Acompanhe e conclua',
+      text: 'O painel avisa o que está perto de vencer e calcula seu progresso a cada conclusão.',
+      done: false,
+    },
+  ];
+  const current = steps.findIndex((s) => !s.done);
+
+  return (
+    <section className="card onboarding" aria-labelledby="comece-aqui" data-testid="getting-started">
+      <div className="onboarding__intro">
+        <span className="onboarding__icon" aria-hidden>
+          <Sparkles size={22} />
+        </span>
+        <div>
+          <h2 id="comece-aqui" className="onboarding__title">
+            Vamos montar seu painel
+          </h2>
+          <p className="onboarding__text">
+            Seu painel começa vazio. Em poucos passos você organiza seus estudos e passa a ver aqui, todos os dias, o
+            que precisa fazer.
+          </p>
+        </div>
+      </div>
+
+      <ol className="onboarding__steps">
+        {steps.map((step, index) => (
+          <li
+            key={step.title}
+            className={`onboarding__step${step.done ? ' is-done' : ''}${index === current ? ' is-current' : ''}`}
+          >
+            <span className="onboarding__number" aria-hidden>
+              {step.done ? <Check size={16} strokeWidth={3} /> : index + 1}
+            </span>
+            <div>
+              <strong>
+                {step.title}
+                {step.done && <span className="sr-only"> (feito)</span>}
+              </strong>
+              <p>{step.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <div className="onboarding__actions">
+        {hasDisciplines ? (
+          <button type="button" className="button button--primary" onClick={onNewActivity}>
+            <Plus size={18} aria-hidden />
+            Cadastrar primeira atividade
+          </button>
+        ) : (
+          <button type="button" className="button button--primary" onClick={onNewDiscipline}>
+            <Plus size={18} aria-hidden />
+            Criar minha primeira disciplina
+          </button>
+        )}
+      </div>
+    </section>
   );
 }

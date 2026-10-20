@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { sampleStudyData } from '../src/test/fixtures';
 
 const ANA = { name: 'Ana', email: 'ana@email.com', password: 'estudos2026' };
 const BIA = { name: 'Bia', email: 'bia@email.com', password: 'aprender123' };
@@ -9,7 +10,17 @@ async function waitForPanel(page: Page) {
   await expect(page.getByText('Carregando seu painel…')).toHaveCount(0);
 }
 
-async function signUp(page: Page, user: TestUser = ANA, options: { remember?: boolean } = {}) {
+/** Pula a abertura animada que aparece logo depois de entrar. */
+async function skipIntro(page: Page) {
+  await page.getByRole('button', { name: 'Pular abertura' }).click();
+  await expect(page.getByTestId('welcome-splash')).toHaveCount(0);
+}
+
+async function signUp(
+  page: Page,
+  user: TestUser = ANA,
+  options: { remember?: boolean; watchIntro?: boolean } = {},
+) {
   await page.getByRole('tab', { name: 'Criar acesso' }).click();
   await page.getByLabel(/^Nome de usuário/).fill(user.name);
   await page.getByLabel(/^E-mail/).fill(user.email);
@@ -17,6 +28,18 @@ async function signUp(page: Page, user: TestUser = ANA, options: { remember?: bo
   await page.getByLabel(/^Confirme a senha/).fill(user.password);
   if (options.remember === false) await page.getByLabel('Manter conectado neste aparelho').uncheck();
   await page.getByRole('button', { name: 'Criar acesso e entrar' }).click();
+  if (!options.watchIntro) await skipIntro(page);
+  await waitForPanel(page);
+}
+
+/** Contas novas começam vazias; aqui a conta recebe as 8 atividades fictícias dos testes. */
+async function loadSampleData(page: Page) {
+  await page.evaluate((data) => {
+    const raw = localStorage.getItem('evolua-estudos:sessao:v1') ?? sessionStorage.getItem('evolua-estudos:sessao:v1');
+    const { userId } = JSON.parse(raw ?? '{}') as { userId: string };
+    localStorage.setItem(`evolua-estudos:dados:v1:${userId}`, JSON.stringify(data));
+  }, sampleStudyData());
+  await page.reload();
   await waitForPanel(page);
 }
 
@@ -36,11 +59,12 @@ async function logOut(page: Page) {
   await expect(page.getByRole('heading', { level: 1, name: 'Entrar' })).toBeVisible();
 }
 
-/** Fixa "hoje" no horário de Brasília, cria uma conta e abre a página pedida. */
+/** Fixa "hoje" no horário de Brasília, cria uma conta com os dados de teste e abre a página pedida. */
 async function openAt(page: Page, isoDateTime: string, hash = '#/') {
   await page.clock.setFixedTime(new Date(isoDateTime));
   await page.goto(`/${hash}`);
   await signUp(page);
+  await loadSampleData(page);
 }
 
 const DAY_ONE = '2026-10-20T10:00:00-03:00';
@@ -56,8 +80,36 @@ async function completeActivity(page: Page, title: string, discipline?: string) 
   await activityRow(page, title, discipline).getByRole('checkbox').click();
 }
 
-test.describe('Dados iniciais', () => {
-  test('carrega as duas disciplinas e as oito atividades uma única vez', async ({ page }) => {
+test.describe('Conta nova e dados salvos', () => {
+  test('conta nova começa vazia e o guia leva até a primeira atividade', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(DAY_ONE));
+    await page.goto('/');
+    await signUp(page);
+
+    const guide = page.getByTestId('getting-started');
+    await expect(guide).toBeVisible();
+    await expect(page.getByText('Você ainda não tem atividades cadastradas')).toBeVisible();
+    await expect(page.getByTestId('stats')).toHaveCount(0);
+
+    await guide.getByRole('button', { name: 'Criar minha primeira disciplina' }).click();
+    await page.getByLabel(/^Nome da disciplina/).fill('Gestão de Pessoas');
+    await page.getByRole('button', { name: 'Criar disciplina' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Gestão de Pessoas' })).toBeVisible();
+
+    await page.goto('/#/');
+    await expect(guide.getByText('Crie suas disciplinas')).toBeVisible();
+    await guide.getByRole('button', { name: 'Cadastrar primeira atividade' }).click();
+    await page.getByLabel('Nome da atividade').fill('Estudo de caso');
+    await page.getByLabel('Data limite').fill('2026-10-30');
+    await page.getByRole('button', { name: 'Cadastrar atividade' }).click();
+
+    await expect(page.getByTestId('getting-started')).toHaveCount(0);
+    await expect(page.getByTestId('stat-brand')).toContainText('1');
+    await expect(page.getByText('Você tem 1 atividade a ser feita')).toBeVisible();
+    await expect(activityRow(page, 'Estudo de caso')).toContainText('Vence em 10 dias');
+  });
+
+  test('os dados ficam salvos ao recarregar, sem duplicar', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades?ver=todas');
     await expect(page.getByTestId('activity-item')).toHaveCount(8);
 
@@ -66,8 +118,8 @@ test.describe('Dados iniciais', () => {
 
     await page.goto('/#/disciplinas');
     await expect(page.getByTestId('discipline-card')).toHaveCount(2);
-    await expect(page.getByText('Hidráulica e Pneumática').first()).toBeVisible();
-    await expect(page.getByText('Segurança em Eletricidade').first()).toBeVisible();
+    await expect(page.getByText('Matemática Aplicada').first()).toBeVisible();
+    await expect(page.getByText('Física Geral').first()).toBeVisible();
   });
 
   test('mostra o resumo do dia e a contagem regressiva', async ({ page }) => {
@@ -83,7 +135,7 @@ test.describe('Dados iniciais', () => {
 
 test.describe('Conclusão e progresso', () => {
   test('concluir atualiza percentuais, listas e permanece após recarregar', async ({ page }) => {
-    await openAt(page, DAY_ONE, '#/disciplinas/seed-hidraulica-pneumatica');
+    await openAt(page, DAY_ONE, '#/disciplinas/teste-matematica');
     await completeActivity(page, 'Videoaulas e exercícios');
 
     await expect(page.getByRole('status').filter({ hasText: 'concluída!' })).toBeVisible();
@@ -102,17 +154,17 @@ test.describe('Conclusão e progresso', () => {
 
     await page.goto('/#/concluidas');
     const done = activityRow(page, 'Videoaulas e exercícios');
-    await expect(done).toContainText('Hidráulica e Pneumática');
+    await expect(done).toContainText('Matemática Aplicada');
     await expect(done).toContainText('em 20/10/2026');
   });
 
   test('desfazer pelo aviso e reabrir pela lista de concluídas', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades');
-    await completeActivity(page, 'Avaliação online', 'Segurança em Eletricidade');
+    await completeActivity(page, 'Avaliação online', 'Física Geral');
     await page.getByRole('button', { name: 'Desfazer' }).click();
     await expect(page.getByTestId('activity-item')).toHaveCount(8);
 
-    await completeActivity(page, 'Avaliação online', 'Segurança em Eletricidade');
+    await completeActivity(page, 'Avaliação online', 'Física Geral');
     await page.goto('/#/concluidas');
     await expect(page.getByTestId('activity-item')).toHaveCount(1);
     await activityRow(page, 'Avaliação online').getByRole('checkbox').click();
@@ -121,9 +173,9 @@ test.describe('Conclusão e progresso', () => {
   });
 
   test('progresso geral 6 de 16 = 38% (37,5%)', async ({ page }) => {
-    await openAt(page, DAY_ONE, '#/disciplinas/seed-hidraulica-pneumatica');
+    await openAt(page, DAY_ONE, '#/disciplinas/teste-matematica');
     // Mais 4 atividades em cada disciplina → 8 por disciplina, 16 no total.
-    for (const disciplineId of ['seed-hidraulica-pneumatica', 'seed-seguranca-eletricidade']) {
+    for (const disciplineId of ['teste-matematica', 'teste-fisica']) {
       await page.goto(`/#/disciplinas/${disciplineId}`);
       for (let i = 1; i <= 4; i++) {
         await page.locator('.page-header').getByRole('button', { name: 'Nova atividade' }).click();
@@ -132,11 +184,11 @@ test.describe('Conclusão e progresso', () => {
         await page.getByRole('button', { name: 'Cadastrar atividade' }).click();
       }
     }
-    await page.goto('/#/disciplinas/seed-hidraulica-pneumatica');
+    await page.goto('/#/disciplinas/teste-matematica');
     for (const title of ['Extra 1', 'Extra 2', 'Extra 3', 'Extra 4']) await completeActivity(page, title);
     await expect(page.getByTestId('discipline-detail-percent')).toHaveText('50%');
 
-    await page.goto('/#/disciplinas/seed-seguranca-eletricidade');
+    await page.goto('/#/disciplinas/teste-fisica');
     for (const title of ['Extra 1', 'Extra 2']) await completeActivity(page, title);
     await expect(page.getByTestId('discipline-detail-percent')).toHaveText('25%');
 
@@ -156,7 +208,7 @@ test.describe('Cadastro, edição e exclusão de atividades', () => {
     await expect(dialog.getByText('Informe o nome da atividade.')).toBeVisible();
 
     await dialog.getByLabel('Nome da atividade').fill('Seminário de válvulas');
-    await dialog.getByLabel('Disciplina').selectOption({ label: 'Hidráulica e Pneumática' });
+    await dialog.getByLabel('Disciplina').selectOption({ label: 'Matemática Aplicada' });
     await dialog.getByLabel('Tipo de atividade').selectOption('outro');
     await dialog.getByLabel('Qual é o tipo?').fill('Seminário');
     await dialog.getByLabel('Data de início').fill('2026-10-20');
@@ -198,7 +250,7 @@ test.describe('Cadastro, edição e exclusão de atividades', () => {
 
   test('status "em andamento" pelos detalhes da atividade', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades');
-    await activityRow(page, 'Videoaulas e exercícios', 'Hidráulica').getByRole('button', { name: /Videoaulas/ }).first().click();
+    await activityRow(page, 'Videoaulas e exercícios', 'Matemática').getByRole('button', { name: /Videoaulas/ }).first().click();
     const dialog = page.getByRole('dialog');
     await dialog.getByText('Em andamento', { exact: true }).click();
     await dialog.getByRole('button', { name: 'Fechar' }).click();
@@ -223,7 +275,7 @@ test.describe('Prazos vencidos', () => {
     await expect(late).toHaveClass(/activity-item--atrasada/);
 
     // Concluída nunca aparece como atrasada.
-    await completeActivity(page, 'Exercício avaliativo online', 'Hidráulica e Pneumática');
+    await completeActivity(page, 'Exercício avaliativo online', 'Matemática Aplicada');
     await expect(page.getByTestId('stat-atrasada')).toContainText('1');
     await page.goto('/#/atividades?ver=atrasadas');
     await expect(page.getByTestId('activity-item')).toHaveCount(1);
@@ -265,7 +317,7 @@ test.describe('Filtros e busca', () => {
     await openAt(page, DAY_ONE, '#/atividades');
     await expect(page.getByTestId('activity-item')).toHaveCount(8);
 
-    await page.getByLabel('Disciplina').selectOption({ label: 'Segurança em Eletricidade' });
+    await page.getByLabel('Disciplina').selectOption({ label: 'Física Geral' });
     await expect(page.getByTestId('activity-item')).toHaveCount(4);
 
     await page.getByLabel('Tipo').selectOption({ label: 'Recuperação' });
@@ -341,18 +393,24 @@ test.describe('Disciplinas', () => {
     await expect(page.getByTestId('activity-item')).toHaveCount(8);
   });
 
-  test('restaurar dados iniciais pede confirmação e substitui os dados', async ({ page }) => {
+  test('apagar todos os dados pede confirmação e deixa o painel vazio', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades');
-    await completeActivity(page, 'Recuperação online', 'Hidráulica');
     await page.getByRole('button', { name: 'Configurações' }).locator('visible=true').first().click();
-    await page.getByRole('button', { name: 'Restaurar dados iniciais' }).click();
+    await page.getByRole('button', { name: 'Apagar todos os dados' }).click();
     const confirm = page.getByRole('alertdialog');
-    await expect(confirm).toContainText('serão substituídas');
-    await confirm.getByRole('button', { name: 'Substituir e restaurar' }).click();
+    await expect(confirm).toContainText('8 atividades');
+    await confirm.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(page.getByRole('dialog', { name: 'Configurações' })).toBeVisible();
 
-    await expect(page.getByTestId('overall-percent')).toHaveText('0%');
+    await page.getByRole('button', { name: 'Apagar todos os dados' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Apagar tudo' }).click();
+
+    await expect(page.getByTestId('getting-started')).toBeVisible();
+    await page.reload();
+    await waitForPanel(page);
+    await expect(page.getByTestId('getting-started')).toBeVisible();
     await page.goto('/#/atividades?ver=todas');
-    await expect(page.getByTestId('activity-item')).toHaveCount(8);
+    await expect(page.getByTestId('activity-item')).toHaveCount(0);
   });
 });
 
@@ -371,7 +429,7 @@ test('navegação principal funciona em todas as páginas', async ({ page }) => 
 
   await page.goto('/#/');
   await page.getByTestId('discipline-card').first().click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Hidráulica e Pneumática' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Matemática Aplicada' })).toBeVisible();
 });
 
 test.describe('Acesso', () => {
@@ -396,18 +454,43 @@ test.describe('Acesso', () => {
     await page.getByRole('tab', { name: 'Entrar' }).click();
     await signUp(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Bom dia, Ana!' })).toBeVisible();
-    await expect(page.getByText('Você tem 8 atividades a serem feitas')).toBeVisible();
+    await expect(page.getByText('Você ainda não tem atividades cadastradas')).toBeVisible();
+  });
+
+  test('abertura animada com a Evolua ao entrar, uma vez por visita', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(DAY_ONE));
+    await page.goto('/');
+    await signUp(page, ANA, { watchIntro: true });
+
+    const splash = page.getByTestId('welcome-splash');
+    await expect(splash).toBeVisible();
+    await expect(splash.getByRole('img', { name: 'Evolua Meu Negócio' })).toBeVisible();
+    await expect(splash.getByText('Evolua Meus Estudos')).toBeVisible();
+    await expect(splash.getByText('Que bom ter você aqui, Ana!')).toBeVisible();
+    // Termina sozinha e revela o painel.
+    await expect(splash).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.getByRole('heading', { level: 1, name: 'Bom dia, Ana!' })).toBeVisible();
+
+    // Recarregar não repete a abertura; sair e entrar de novo, sim.
+    await page.reload();
+    await waitForPanel(page);
+    await expect(splash).toHaveCount(0);
+    await logOut(page);
+    await logIn(page, ANA.email, ANA.password);
+    await expect(splash).toBeVisible();
+    await skipIntro(page);
   });
 
   test('sair, senha errada, entrar de novo e manter os dados', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades');
-    await completeActivity(page, 'Videoaulas e exercícios', 'Hidráulica');
+    await completeActivity(page, 'Videoaulas e exercícios', 'Matemática');
     await logOut(page);
 
     await logIn(page, ANA.email, 'senhaErrada1');
     await expect(page.getByText('E-mail ou senha incorretos.')).toBeVisible();
 
     await logIn(page, ANA.email, ANA.password);
+    await skipIntro(page);
     await waitForPanel(page);
     await expect(page.getByTestId('overall-percent')).toHaveText('13%');
     await expect(page.getByText('Você tem 7 atividades a serem feitas')).toBeVisible();
@@ -420,11 +503,11 @@ test.describe('Acesso', () => {
 
   test('cada conta tem os próprios dados e o nome de usuário pode ser alterado', async ({ page }) => {
     await openAt(page, DAY_ONE, '#/atividades');
-    await completeActivity(page, 'Videoaulas e exercícios', 'Hidráulica');
+    await completeActivity(page, 'Videoaulas e exercícios', 'Matemática');
     await logOut(page);
 
     await signUp(page, BIA);
-    await expect(page.getByTestId('overall-percent')).toHaveText('0%');
+    await expect(page.getByTestId('getting-started')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Bom dia, Bia!' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Configurações' }).locator('visible=true').first().click();
@@ -443,6 +526,7 @@ test.describe('Acesso', () => {
 
     await page.getByRole('tab', { name: 'Entrar' }).click();
     await logIn(page, ANA.email, ANA.password);
+    await skipIntro(page);
     await waitForPanel(page);
     await expect(page.getByTestId('overall-percent')).toHaveText('13%');
   });

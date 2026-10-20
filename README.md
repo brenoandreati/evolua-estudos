@@ -44,8 +44,16 @@ Ao abrir o painel, aparece a tela de acesso com a marca Evolua. Na primeira vez,
 - **E-mail e senha**: informa o **nome de usuário** (como a plataforma vai chamá-la), o e-mail e uma senha
   (mínimo de 8 caracteres, com letras e números).
 
+Ao entrar, uma **abertura animada** apresenta a marca: as barras do “E” da Evolua Meu Negócio crescem, o nome
+se revela e o painel Evolua Meus Estudos dá as boas-vindas pelo nome. Ela aparece uma vez por visita (recarregar
+a página não repete) e pode ser pulada com o botão **Pular**, clicando na tela ou com Esc/Enter. Para quem
+prefere menos movimento no sistema, a abertura é reduzida a um esmaecer rápido.
+
 Depois disso, a Visão geral cumprimenta pelo nome: *“Bom dia, Maria! Você tem 8 atividades a serem feitas…”*.
 O nome de usuário pode ser alterado em **Configurações**.
+
+**Toda conta começa vazia.** Enquanto não há atividades, a Visão geral mostra o guia **“Vamos montar seu
+painel”**: criar as disciplinas, cadastrar as atividades e acompanhar o progresso.
 
 - **Manter conectado neste aparelho:** marcado, o acesso continua ao fechar o navegador; desmarcado, vale
   só até fechar a aba.
@@ -91,8 +99,8 @@ No topo de todas as páginas, o **sino de avisos** mostra quantas atividades est
 5 dias, com a lista e acesso direto aos detalhes de cada uma.
 
 Também é possível criar, editar e excluir disciplinas e atividades (sempre com confirmação antes de excluir),
-marcar uma atividade como “em andamento”, desfazer uma conclusão pelo aviso que aparece na tela e restaurar
-os dados iniciais em **Configurações**.
+marcar uma atividade como “em andamento”, desfazer uma conclusão pelo aviso que aparece na tela e, em
+**Configurações**, apagar todos os dados para começar do zero.
 
 ### Cores de urgência
 
@@ -131,9 +139,9 @@ por conta. Os dados continuam lá ao fechar ou atualizar a página, mas **ficam 
 aparelho**: não aparecem no celular se você usou no computador, e são apagados se você limpar os dados de
 navegação. Não há servidor nem banco de dados.
 
-Os dados iniciais (duas disciplinas com quatro atividades cada) são gravados uma única vez para cada conta e
-nunca são duplicados. O botão **Restaurar dados iniciais**, em Configurações, volta a esse estado depois de pedir
-confirmação.
+Cada conta começa sem nenhuma disciplina ou atividade. Registros de exemplo de versões anteriores do painel
+são removidos automaticamente ao abrir. O botão **Apagar todos os dados**, em Configurações, deixa o painel
+vazio de novo depois de pedir confirmação.
 
 ### Preparado para servidor e banco de dados
 
@@ -151,7 +159,7 @@ Telas e regras de negócio não precisam mudar.
 ```
 src/
 ├── auth/          Acesso: cadastro, entrada com e-mail/senha ou Google e tela de acesso
-├── domain/        Regras puras: tipos, datas, urgência, filtros, progresso, dados iniciais
+├── domain/        Regras puras: tipos, datas, urgência, filtros e progresso
 ├── data/          Persistência (interface StudyRepository + implementação localStorage)
 ├── state/         Estado da aplicação (reducer), ações com confirmação/avisos e janelas
 ├── components/    Componentes reutilizáveis (atividades, disciplinas, layout, interface)

@@ -3,7 +3,6 @@ import type { FormEvent, ReactNode } from 'react';
 import { CalendarDays, Eye, EyeOff, LoaderCircle, ShieldCheck, TrendingUp, TriangleAlert } from 'lucide-react';
 import { BarsMark, CapIcon, EvoluaNegocioLogo } from '../components/brand/Logo';
 import { Field } from '../components/ui/Field';
-import { useToast } from '../components/ui/ToastProvider';
 import { useAuth } from './AuthProvider';
 import { GOOGLE_CLIENT_ID, isGoogleEnabled, loadGoogleIdentity } from './google';
 import { AuthError, type AuthField } from './types';
@@ -242,13 +241,12 @@ function RememberCheckbox({ checked, onChange }: { checked: boolean; onChange: (
 /** Botão oficial "Continuar com Google" (só aparece com o Client ID configurado). */
 function GoogleSignIn({ remember }: { remember: boolean }) {
   const { signInWithGoogle } = useAuth();
-  const { showToast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   // O Google chama o callback mais tarde; refs mantêm os valores atuais.
-  const latest = useRef({ remember, signInWithGoogle, showToast });
-  latest.current = { remember, signInWithGoogle, showToast };
+  const latest = useRef({ remember, signInWithGoogle });
+  latest.current = { remember, signInWithGoogle };
 
   useEffect(() => {
     let active = true;
@@ -261,11 +259,10 @@ function GoogleSignIn({ remember }: { remember: boolean }) {
           ux_mode: 'popup',
           auto_select: false,
           callback: ({ credential }) => {
-            const { remember: keep, signInWithGoogle: signIn, showToast: toast } = latest.current;
+            const { remember: keep, signInWithGoogle: signIn } = latest.current;
             setError(undefined);
             setBusy(true);
             signIn(credential, keep)
-              .then((user) => toast(`Olá, ${user.name}! Bem-vindo(a) ao seu painel.`))
               .catch((e: unknown) => {
                 if (active) setError(e instanceof Error ? e.message : 'Não foi possível entrar com o Google.');
               })
@@ -314,7 +311,6 @@ interface RememberProps {
 
 function LoginForm({ remember, onRememberChange, onForgot }: RememberProps & { onForgot: () => void }) {
   const { login } = useAuth();
-  const { showToast } = useToast();
   const { busy, errors, run, clear } = useSubmit();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -327,8 +323,7 @@ function LoginForm({ remember, onRememberChange, onForgot }: RememberProps & { o
         password: password ? undefined : 'Informe sua senha.',
       }),
       async () => {
-        const user = await login(email, password, remember);
-        showToast(`Bem-vindo(a) de volta, ${user.name}!`);
+        await login(email, password, remember);
       },
     );
   };
@@ -375,7 +370,6 @@ function LoginForm({ remember, onRememberChange, onForgot }: RememberProps & { o
 
 function RegisterForm({ remember, onRememberChange }: RememberProps) {
   const { register } = useAuth();
-  const { showToast } = useToast();
   const { busy, errors, run, clear } = useSubmit();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
 
@@ -394,8 +388,7 @@ function RegisterForm({ remember, onRememberChange }: RememberProps) {
         confirm: form.confirm !== form.password ? 'As senhas não conferem.' : undefined,
       }),
       async () => {
-        const user = await register({ name: form.name, email: form.email, password: form.password }, remember);
-        showToast(`Acesso criado! Bem-vindo(a), ${user.name}.`);
+        await register({ name: form.name, email: form.email, password: form.password }, remember);
       },
     );
   };

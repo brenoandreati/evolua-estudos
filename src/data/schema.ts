@@ -51,18 +51,32 @@ function parseActivity(raw: unknown): Activity | null {
   };
 }
 
+/** Registros de exemplo das primeiras versões do painel (IDs "seed-…"). */
+const LEGACY_SAMPLE_PREFIX = 'seed-';
+
 /**
  * Valida dados vindos do armazenamento. Registros malformados são descartados
  * individualmente; se a estrutura geral for inválida, retorna `null`.
+ *
+ * Também remove os registros de exemplo das primeiras versões: cada pessoa
+ * começa do zero. Uma disciplina de exemplo só é mantida se a pessoa tiver
+ * cadastrado atividades próprias nela.
  */
 export function parseStudyData(raw: unknown): StudyData | null {
   if (!isRecord(raw) || !Array.isArray(raw.disciplines) || !Array.isArray(raw.activities)) {
     return null;
   }
-  const disciplines = raw.disciplines.map(parseDiscipline).filter((d): d is Discipline => d !== null);
-  const disciplineIds = new Set(disciplines.map((d) => d.id));
+  const parsedDisciplines = raw.disciplines.map(parseDiscipline).filter((d): d is Discipline => d !== null);
+  const disciplineIds = new Set(parsedDisciplines.map((d) => d.id));
   const activities = raw.activities
     .map(parseActivity)
-    .filter((a): a is Activity => a !== null && disciplineIds.has(a.disciplineId));
+    .filter(
+      (a): a is Activity =>
+        a !== null && disciplineIds.has(a.disciplineId) && !a.id.startsWith(LEGACY_SAMPLE_PREFIX),
+    );
+  const usedDisciplines = new Set(activities.map((a) => a.disciplineId));
+  const disciplines = parsedDisciplines.filter(
+    (d) => !d.id.startsWith(LEGACY_SAMPLE_PREFIX) || usedDisciplines.has(d.id),
+  );
   return { version: 1, disciplines, activities };
 }

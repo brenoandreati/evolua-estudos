@@ -931,3 +931,124 @@
     background: #fff7f7;
   }
 }
+
+/* ---------- Primeiros passos (painel vazio) ---------- */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-top: 3px solid var(--brand-600);
+}
+
+.onboarding__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.onboarding__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  flex-shrink: 0;
+}
+
+.onboarding__title {
+  font-size: var(--text-xl);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.onboarding__text {
+  margin-top: var(--space-1);
+  max-width: 62ch;
+  color: var(--text-soft);
+}
+
+.onboarding__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.onboarding__step {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.onboarding__step strong {
+  display: block;
+  font-weight: 650;
+}
+
+.onboarding__step p {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.onboarding__number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.onboarding__step.is-current {
+  border-color: var(--brand-200);
+  background: var(--brand-50);
+}
+
+.onboarding__step.is-current .onboarding__number {
+  background: var(--brand-600);
+  color: #fff;
+}
+
+.onboarding__step.is-done .onboarding__number {
+  background: var(--concluida);
+  color: #fff;
+}
+
+.onboarding__step.is-done strong {
+  color: var(--concluida-strong);
+}
+
+@media (max-width: 900px) {
+  .onboarding__steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .onboarding {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .onboarding__actions {
+    order: -1;
+    margin-top: calc(-1 * var(--space-2));
+  }
+
+  .onboarding__intro {
+    order: -2;
+  }
+
+  .onboarding__actions .button {
+    width: 100%;
+  }
+}

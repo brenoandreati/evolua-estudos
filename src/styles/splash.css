@@ -1,0 +1,238 @@
+/* Abertura animada (aparece ao entrar na plataforma). */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(155deg, #1a66f0 0%, var(--brand-600) 40%, var(--brand-800) 100%);
+  cursor: pointer;
+}
+
+.splash.is-leaving {
+  animation: splash-exit 700ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+@keyframes splash-exit {
+  to {
+    transform: translateY(-100%);
+    border-radius: 0 0 50% 50% / 0 0 18% 18%;
+  }
+}
+
+/* Luz que pulsa atrás da logo */
+.splash__glow {
+  position: absolute;
+  width: 140vmax;
+  height: 140vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.22) 0%, rgb(255 255 255 / 0.06) 28%, transparent 55%);
+  opacity: 0;
+  transform: scale(0.4);
+  animation: glow-in 1.6s 0.5s ease-out forwards;
+}
+
+@keyframes glow-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.splash__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: min(560px, 100%);
+  /* A logo começa no centro e sobe quando o restante aparece. */
+  transform: translateY(84px);
+  animation: stage-settle 900ms 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes stage-settle {
+  to {
+    transform: none;
+  }
+}
+
+/* ----- Logo montada em camadas ----- */
+.splash__logo {
+  position: relative;
+  width: min(460px, 82vw);
+  aspect-ratio: 1200 / 310;
+}
+
+.splash__bar {
+  position: absolute;
+  left: 0;
+  height: 12.701%;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: bar-in 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.splash__bar--1 {
+  top: 0.965%;
+  width: 11.095%;
+  animation-delay: 0.25s;
+}
+
+.splash__bar--2 {
+  top: 28.537%;
+  width: 14.212%;
+  animation-delay: 0.4s;
+}
+
+.splash__bar--3 {
+  top: 55.949%;
+  width: 16.933%;
+  animation-delay: 0.55s;
+}
+
+@keyframes bar-in {
+  0% {
+    transform: scaleX(0);
+  }
+  70% {
+    transform: scaleX(1.12);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.splash__layer {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+}
+
+.splash__layer--volua {
+  -webkit-mask: var(--logo-volua) center / 100% 100% no-repeat;
+  mask: var(--logo-volua) center / 100% 100% no-repeat;
+  clip-path: inset(0 100% 0 0);
+  animation: volua-in 800ms 0.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes volua-in {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.splash__layer--negocio {
+  -webkit-mask: var(--logo-negocio) center / 100% 100% no-repeat;
+  mask: var(--logo-negocio) center / 100% 100% no-repeat;
+  opacity: 0;
+  transform: translateY(8px) scaleX(1.06);
+  animation: negocio-in 700ms 1.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes negocio-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ----- Apresentação do painel ----- */
+.splash__presents {
+  margin-top: var(--space-8);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.7);
+  opacity: 0;
+  animation: rise-in 600ms 2.15s ease-out forwards;
+}
+
+.splash__product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  opacity: 0;
+  animation: rise-in 650ms 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.splash__cap {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  background: rgb(255 255 255 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.28);
+}
+
+.splash__product-name {
+  font-size: clamp(1.375rem, 5vw, 1.875rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.splash__welcome {
+  margin-top: var(--space-6);
+  font-size: var(--text-lg);
+  color: rgb(255 255 255 / 0.9);
+  opacity: 0;
+  animation: rise-in 600ms 2.9s ease-out forwards;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.splash__skip {
+  position: absolute;
+  right: var(--space-5);
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgb(255 255 255 / 0.35);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  opacity: 0.8;
+  transition:
+    opacity var(--transition),
+    background var(--transition);
+}
+
+.splash__skip:hover,
+.splash__skip:focus-visible {
+  opacity: 1;
+  background: rgb(255 255 255 / 0.12);
+}
+
+/* Movimento reduzido: tudo aparece de uma vez, com um esmaecer simples. */
+.splash.is-reduced *,
+.splash.is-reduced {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+}
+
+.splash.is-reduced.is-leaving {
+  animation: splash-fade 200ms ease forwards !important;
+}
+
+@keyframes splash-fade {
+  to {
+    opacity: 0;
+  }
+}

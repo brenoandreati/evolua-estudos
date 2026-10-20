@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthProvider';
+import { resetIntro } from '../components/brand/WelcomeSplash';
 import { useToast } from '../components/ui/ToastProvider';
 import type { Activity, ActivityStatus, Discipline } from '../domain/types';
 import { navigate, paths } from '../router';
@@ -95,30 +96,29 @@ export function useStudyCommands() {
     [actions, closeModal, confirm, data.activities, showToast],
   );
 
-  const restoreInitialData = useCallback(async () => {
+  const clearAllData = useCallback(async () => {
+    const count = data.activities.length;
     const ok = await confirm({
-      title: 'Restaurar dados iniciais?',
+      title: 'Apagar todos os dados?',
       message: (
         <>
           <p>
-            O painel voltará ao estado original: as disciplinas <strong>Hidráulica e Pneumática</strong> e{' '}
-            <strong>Segurança em Eletricidade</strong>, com suas atividades sem nenhuma conclusão.
+            Todas as disciplinas e atividades desta conta serão apagadas
+            {count > 0 ? <> ({count === 1 ? '1 atividade' : `${count} atividades`})</> : null}, e o painel volta a
+            ficar vazio para você começar do zero.
           </p>
-          <p className="confirm-message__warning">
-            Atenção: todas as disciplinas, atividades e conclusões atuais serão substituídas. Essa ação não pode
-            ser desfeita.
-          </p>
+          <p className="confirm-message__warning">Essa ação não pode ser desfeita.</p>
         </>
       ),
-      confirmLabel: 'Substituir e restaurar',
+      confirmLabel: 'Apagar tudo',
     });
     if (!ok) return false;
-    actions.restoreInitialData();
+    actions.clearAllData();
     closeModal();
     navigate(paths.overview);
-    showToast('Dados iniciais restaurados.');
+    showToast('Todos os dados foram apagados.', { tone: 'info' });
     return true;
-  }, [actions, closeModal, confirm, showToast]);
+  }, [actions, closeModal, confirm, data.activities.length, showToast]);
 
   const logout = useCallback(async () => {
     const ok = await confirm({
@@ -130,13 +130,14 @@ export function useStudyCommands() {
     if (!ok) return false;
     closeModal();
     await auth.logout();
+    resetIntro();
     navigate(paths.overview, { replace: true });
     showToast('Você saiu da sua conta.', { tone: 'info' });
     return true;
   }, [auth, closeModal, confirm, showToast]);
 
   return useMemo(
-    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData, logout }),
-    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, restoreInitialData, logout],
+    () => ({ setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout }),
+    [setStatus, toggleComplete, deleteActivity, deleteDiscipline, clearAllData, logout],
   );
 }

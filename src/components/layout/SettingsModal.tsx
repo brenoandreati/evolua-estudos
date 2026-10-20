@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { HardDrive, LogOut, RotateCcw, UserRound } from 'lucide-react';
+import { HardDrive, LogOut, Trash2, UserRound } from 'lucide-react';
 import { useAuth, useCurrentUser } from '../../auth/AuthProvider';
 import { useStudyCommands } from '../../state/useStudyCommands';
 import { Field } from '../ui/Field';
@@ -10,7 +10,7 @@ import { useToast } from '../ui/ToastProvider';
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const user = useCurrentUser();
   const { updateProfile } = useAuth();
-  const { restoreInitialData, logout } = useStudyCommands();
+  const { clearAllData, logout } = useStudyCommands();
   const { showToast } = useToast();
   const [name, setName] = useState(user.name);
   const [nameError, setNameError] = useState<string>();
@@ -102,13 +102,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
       <div className="settings-block settings-block--danger">
         <h3 className="settings-block__title">
-          <RotateCcw size={16} aria-hidden /> Restaurar dados iniciais
+          <Trash2 size={16} aria-hidden /> Começar do zero
         </h3>
         <p className="settings-block__text">
-          Volta às duas disciplinas e oito atividades originais. Os dados atuais desta conta serão substituídos.
+          Apaga todas as disciplinas e atividades desta conta. Sua conta continua ativa.
         </p>
-        <button type="button" className="button button--danger-outline" onClick={() => void restoreInitialData()}>
-          Restaurar dados iniciais
+        <button type="button" className="button button--danger-outline" onClick={() => void clearAllData()}>
+          Apagar todos os dados
         </button>
       </div>
     </Modal>

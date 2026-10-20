@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import type { ReactNode } from 'react';
 import type { StudyRepository } from '../data';
 import { todayISO } from '../domain/dates';
-import { createSeedData } from '../domain/seed';
 import type {
   Activity,
   ActivityInput,
@@ -24,7 +23,8 @@ interface StudyActions {
   updateActivity(id: string, input: ActivityInput): void;
   setActivityStatus(id: string, status: ActivityStatus): void;
   deleteActivity(id: string): void;
-  restoreInitialData(): void;
+  /** Apaga todas as disciplinas e atividades da conta. */
+  clearAllData(): void;
 }
 
 interface StudyContextValue {
@@ -53,7 +53,7 @@ export function StudyProvider({ children, repository: repo }: { children: ReactN
   // Último estado já gravado (ou recebido do armazenamento) — evita regravar à toa.
   const persisted = useRef<StudyData | null>(null);
 
-  // Carrega os dados salvos. Na primeira visita, grava os dados iniciais uma única vez.
+  // Carrega os dados salvos. Uma conta nova começa vazia.
   useEffect(() => {
     let cancelled = false;
     repo
@@ -64,13 +64,13 @@ export function StudyProvider({ children, repository: repo }: { children: ReactN
           persisted.current = saved;
           dispatch({ type: 'replaceAll', data: saved });
         } else {
-          dispatch({ type: 'replaceAll', data: createSeedData() });
+          dispatch({ type: 'replaceAll', data: { ...EMPTY_DATA } });
         }
       })
       .catch(() => {
         if (cancelled) return;
         setStorageError(STORAGE_ERROR_MESSAGE);
-        dispatch({ type: 'replaceAll', data: createSeedData() });
+        dispatch({ type: 'replaceAll', data: { ...EMPTY_DATA } });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -139,7 +139,7 @@ export function StudyProvider({ children, repository: repo }: { children: ReactN
       setActivityStatus: (id, status) =>
         dispatch({ type: 'setActivityStatus', id, status, now: new Date().toISOString(), today: todayISO() }),
       deleteActivity: (id) => dispatch({ type: 'deleteActivity', id }),
-      restoreInitialData: () => dispatch({ type: 'replaceAll', data: createSeedData() }),
+      clearAllData: () => dispatch({ type: 'replaceAll', data: { version: 1, disciplines: [], activities: [] } }),
     }),
     [addDiscipline, addActivity],
   );

@@ -22,7 +22,7 @@ export function adoptLegacyData(userId: string, storage: Storage | undefined = g
       storage.removeItem(STORAGE_KEY);
     }
   } catch {
-    // Sem acesso ao armazenamento: a conta começa com os dados iniciais.
+    // Sem acesso ao armazenamento: a conta começa vazia.
   }
 }
 

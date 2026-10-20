@@ -1,33 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { createSeedData } from '../domain/seed';
+import { sampleStudyData } from '../test/fixtures';
 import type { ActivityInput } from '../domain/types';
 import { studyReducer } from './studyReducer';
 
 const NOW = '2026-10-20T12:00:00.000Z';
 const TODAY = '2026-10-20';
-const HP = 'seed-hidraulica-pneumatica';
-const SE = 'seed-seguranca-eletricidade';
-
-describe('createSeedData', () => {
-  it('cria 2 disciplinas com 4 atividades cada, nenhuma concluída', () => {
-    const seed = createSeedData();
-    expect(seed.disciplines.map((d) => d.name)).toEqual(['Hidráulica e Pneumática', 'Segurança em Eletricidade']);
-    expect(seed.activities).toHaveLength(8);
-    expect(seed.activities.every((a) => a.status === 'pendente' && a.completedAt === null)).toBe(true);
-    expect(new Set(seed.activities.map((a) => a.id)).size).toBe(8);
-
-    const hp = seed.activities.filter((a) => a.disciplineId === HP);
-    expect(hp.map((a) => [a.title, a.startDate, a.dueDate])).toEqual([
-      ['Videoaulas e exercícios', '2026-10-19', '2026-11-15'],
-      ['Exercício avaliativo online', '2026-11-01', '2026-11-09'],
-      ['Avaliação online', '2026-11-09', '2026-11-15'],
-      ['Recuperação online', '2026-11-23', '2026-11-30'],
-    ]);
-  });
-});
+const MAT = 'teste-matematica';
+const FIS = 'teste-fisica';
 
 describe('studyReducer', () => {
-  const seed = createSeedData(new Date(NOW));
+  const seed = sampleStudyData(new Date(NOW));
   const firstId = seed.activities[0].id;
 
   it('concluir registra a data de conclusão; reabrir limpa', () => {
@@ -47,16 +29,22 @@ describe('studyReducer', () => {
   });
 
   it('excluir disciplina remove as atividades vinculadas', () => {
-    const next = studyReducer(seed, { type: 'deleteDiscipline', id: HP });
-    expect(next.disciplines.map((d) => d.id)).toEqual([SE]);
+    const next = studyReducer(seed, { type: 'deleteDiscipline', id: MAT });
+    expect(next.disciplines.map((d) => d.id)).toEqual([FIS]);
     expect(next.activities).toHaveLength(4);
-    expect(next.activities.every((a) => a.disciplineId === SE)).toBe(true);
+    expect(next.activities.every((a) => a.disciplineId === FIS)).toBe(true);
   });
 
   it('excluir atividade a remove do cálculo', () => {
     const next = studyReducer(seed, { type: 'deleteActivity', id: firstId });
     expect(next.activities).toHaveLength(7);
     expect(next.activities.some((a) => a.id === firstId)).toBe(false);
+  });
+
+  it('apagar tudo deixa o painel vazio', () => {
+    const next = studyReducer(seed, { type: 'replaceAll', data: { version: 1, disciplines: [], activities: [] } });
+    expect(next.disciplines).toHaveLength(0);
+    expect(next.activities).toHaveLength(0);
   });
 
   it('não altera o estado original (imutável)', () => {
