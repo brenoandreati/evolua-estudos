@@ -1,0 +1,8 @@
+// Site da proposta comercial da Delícias Burguer (Workers com arquivos estáticos).
+{
+  "name": "proposta-delicias-burguer",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./site"
+  }
+}
