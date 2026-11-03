@@ -615,95 +615,142 @@
     }
     .bonus__itens dd { margin-top: 6px; color: var(--cinza); text-wrap: pretty; }
 
-    /* Esquema ilustrativo de um perfil estruturado. */
+    /* Perfil atual da hamburgueria no Instagram, com o que a estruturação trabalha. */
     .perfil {
       justify-self: center;
       width: 100%;
       max-width: 380px;
-      padding: 24px 20px 20px;
-      background: var(--grafite);
-      border: 1px solid var(--linha);
-      border-radius: 22px;
+      min-width: 0;
+    }
+    .perfil__tela {
+      padding: 22px 16px 0;
+      background: var(--preto);
+      border: 1px solid var(--linha-forte);
+      border-radius: 28px;
+      overflow: hidden;
       box-shadow: 0 50px 100px -60px rgba(0, 0, 0, 0.9);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, var(--f-display);
     }
     .perfil__zona { position: relative; }
-    .perfil__zona + .perfil__zona { margin-top: 20px; }
+    .perfil__zona + .perfil__zona,
+    .perfil__cabeca + .perfil__zona { margin-top: 18px; }
     .perfil__tag {
       position: absolute;
       top: -2px;
       right: 0;
+      z-index: 1;
       padding: 3px 7px;
-      border: 1px solid rgba(139, 178, 247, 0.4);
+      border: 1px solid rgba(139, 178, 247, 0.5);
       border-radius: 2px;
       font-family: var(--f-mono);
       font-size: 0.625rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--azul-claro);
-      background: var(--grafite);
+      background: var(--preto);
     }
-    .perfil__cabeca { display: flex; align-items: center; gap: 14px; }
+    .perfil__usuario {
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: center;
+      color: var(--branco);
+    }
+    .perfil__cabeca {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+    }
     .perfil__foto {
       flex: none;
-      display: grid;
-      place-items: center;
-      width: 64px;
-      height: 64px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #26262b, #121214);
-      box-shadow: 0 0 0 2px var(--grafite), 0 0 0 4px var(--azul);
-      font-stretch: 125%;
-      font-weight: 800;
-      font-size: 1.125rem;
-      letter-spacing: -0.02em;
-      color: var(--azul-claro);
+      object-fit: cover;
+      box-shadow: 0 0 0 1px var(--linha-forte);
     }
-    .perfil__nome { font-weight: 700; font-size: 1rem; line-height: 1.25; }
-    .perfil__cat { font-family: var(--f-mono); font-size: 0.6875rem; color: var(--cinza); letter-spacing: 0.04em; }
-    .perfil__bio { display: grid; gap: 7px; margin-top: 16px; }
-    .perfil__bio i { display: block; height: 7px; border-radius: 1px; background: #2e2e33; }
-    .perfil__bio i:nth-child(1) { width: 88%; }
-    .perfil__bio i:nth-child(2) { width: 72%; }
-    .perfil__bio i:nth-child(3) { width: 54%; }
+    .perfil__nome { font-weight: 600; font-size: 0.9375rem; line-height: 1.25; }
+    .perfil__numeros {
+      display: flex;
+      gap: 14px;
+      margin-top: 6px;
+      font-size: 0.75rem;
+      line-height: 1.2;
+      color: var(--cinza);
+    }
+    .perfil__numeros b { display: block; font-size: 0.9375rem; color: var(--branco); font-variant-numeric: tabular-nums; }
+    .perfil__bio {
+      display: grid;
+      gap: 1px;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      color: var(--branco);
+    }
     .perfil__link {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-top: 12px;
+      margin-top: 3px;
       font-size: 0.8125rem;
       font-weight: 600;
       color: var(--azul-claro);
     }
-    .perfil__link svg { width: 14px; height: 14px; }
-    .perfil__destaques { display: flex; justify-content: space-between; gap: 8px; padding-top: 26px; }
-    .perfil__destaques li { display: grid; justify-items: center; gap: 7px; width: 25%; }
-    .perfil__destaques span {
+    .perfil__link svg { width: 14px; height: 14px; flex: none; }
+    .perfil__destaques {
       display: grid;
-      place-items: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 1.5px solid var(--azul);
-      background: var(--grafite-2);
-      color: var(--azul-claro);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      padding-top: 26px;
     }
-    .perfil__destaques svg { width: 20px; height: 20px; }
-    .perfil__destaques small { font-size: 0.6875rem; line-height: 1.2; color: var(--branco); text-align: center; }
-    .perfil__grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding-top: 26px; }
-    .perfil__grade i { aspect-ratio: 1; border-radius: 2px; }
-    .perfil__grade i:nth-child(1) { background: linear-gradient(140deg, #3a3a40, #1a1a1d); }
-    .perfil__grade i:nth-child(2) { background: linear-gradient(200deg, #3d7cf0, #0b2f75); }
-    .perfil__grade i:nth-child(3) { background: linear-gradient(160deg, #2c2c31, #141416); }
-    .perfil__grade i:nth-child(4) { background: linear-gradient(120deg, #1f1f23, #3a3a40); }
-    .perfil__grade i:nth-child(5) { background: linear-gradient(180deg, #5a5a62, #26262b); }
-    .perfil__grade i:nth-child(6) { background: linear-gradient(220deg, #f5f5f7, #8a8a93); }
+    .perfil__destaques li { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+    .perfil__destaques img {
+      width: 100%;
+      max-width: 54px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 0 2px var(--preto), 0 0 0 3px var(--linha-forte);
+    }
+    .perfil__destaques small {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.6875rem;
+      line-height: 1.2;
+      color: var(--branco);
+    }
+    .perfil__grade {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2px;
+      margin-top: 40px;
+      margin-inline: -16px;
+    }
+    .perfil__grade .perfil__tag { top: -30px; right: 16px; }
+    .perfil__grade img { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
+    .perfil__grade img:nth-child(n+5) { aspect-ratio: 300 / 323; object-position: top; }
+    /* A grade continua para baixo, como no app. */
+    .perfil__grade::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 45%;
+      background: linear-gradient(180deg, rgba(10, 10, 11, 0), var(--preto));
+      pointer-events: none;
+    }
     .perfil figcaption {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
       margin-top: 16px;
       font-family: var(--f-mono);
       font-size: 0.6875rem;
       color: var(--cinza);
       text-align: center;
     }
+    .perfil figcaption a { color: var(--azul-claro); text-underline-offset: 3px; }
 
     /* --- Pagamento --------------------------------------------------- */
     .pagamento { display: grid; gap: 40px; }
@@ -1017,7 +1064,7 @@
         <div>
           <p class="rotulo rotulo--azul">Bônus exclusivo do Plano Recomendado</p>
           <h2 class="titulo-secao" id="bonus-titulo">Estruturação completa do perfil</h2>
-          <p class="intro">O perfil da Delícias Burguer é organizado para que quem chega pelo feed, por um vídeo ou por indicação entenda em segundos o que pedir e como pedir.</p>
+          <p class="intro">Partimos do perfil atual da Delícias Burguer e organizamos bio, destaques e grade para que quem chega pelo feed, por um vídeo ou por indicação entenda em segundos o que pedir e como pedir.</p>
           <dl class="bonus__itens">
             <div>
               <dt>Bio otimizada e links</dt>
@@ -1035,37 +1082,60 @@
         </div>
 
         <figure class="perfil">
-          <div class="perfil__zona">
-            <span class="perfil__tag">Bio e links</span>
+          <div class="perfil__tela">
+            <p class="perfil__usuario">deliciasburger</p>
             <div class="perfil__cabeca">
-              <span class="perfil__foto" aria-hidden="true">DB</span>
+              <img class="perfil__foto" src="ig-perfil.jpg" width="72" height="72" alt="Logo da Delícia's Burger" />
               <div>
-                <p class="perfil__nome">Delícias Burguer</p>
-                <p class="perfil__cat">Hamburgueria</p>
+                <p class="perfil__nome">Delícia's Burger</p>
+                <p class="perfil__numeros">
+                  <span><b>103</b>posts</span>
+                  <span><b>5.527</b>seguidores</span>
+                  <span><b>1.726</b>seguindo</span>
+                </p>
               </div>
             </div>
-            <div class="perfil__bio" aria-hidden="true"><i></i><i></i><i></i></div>
-            <p class="perfil__link">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 9.5 9.5 6.5M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.8 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7L5.2 7.8"/></svg>
-              Pedidos e WhatsApp
-            </p>
-          </div>
 
-          <div class="perfil__zona">
-            <span class="perfil__tag">Destaques</span>
-            <ul class="perfil__destaques">
-              <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 11h14a7 7 0 0 0-14 0zM4.5 14.5h15M5.5 18h13a1 1 0 0 0 1-1v-.5h-15v.5a1 1 0 0 0 1 1z"/></svg></span><small>Cardápio</small></li>
-              <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8-9.1 9.1zM8 8h.01"/></svg></span><small>Promoções</small></li>
-              <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 3.5h10a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1zM11 17.5h2"/></svg></span><small>Como pedir</small></li>
-              <li><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.8 2.5 5.1 5.6.8-4 4 1 5.5-5.1-2.7-5 2.7 1-5.5-4.1-4 5.6-.8z"/></svg></span><small>Avaliações</small></li>
-            </ul>
-          </div>
+            <div class="perfil__zona">
+              <span class="perfil__tag">Bio e links</span>
+              <p class="perfil__bio">
+                <span>🍔 Burger, Fritas &amp; Shake</span>
+                <span>⏰ Ter à Dom a partir das 18h</span>
+                <span>📍 Cobilândia, Vila Velha/ES</span>
+                <span>🪑 Presencial &amp; Delivery</span>
+                <span>Faça seu pedido aqui 👇</span>
+              </p>
+              <p class="perfil__link">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 9.5 9.5 6.5M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.8 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7L5.2 7.8"/></svg>
+                deliciasburger.menudino.com
+              </p>
+            </div>
 
-          <div class="perfil__zona">
-            <span class="perfil__tag">Grade</span>
-            <div class="perfil__grade" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="perfil__zona">
+              <span class="perfil__tag">Destaques</span>
+              <ul class="perfil__destaques">
+                <li><img src="ig-destaque-clientes.jpg" width="54" height="54" alt="" /><small>Clientes</small></li>
+                <li><img src="ig-destaque-delivery.jpg" width="54" height="54" alt="" /><small>Delivery</small></li>
+                <li><img src="ig-destaque-burger.jpg" width="54" height="54" alt="" /><small>Burger</small></li>
+                <li><img src="ig-destaque-fritas.jpg" width="54" height="54" alt="" /><small>Fritas</small></li>
+                <li><img src="ig-destaque-cardapio.jpg" width="54" height="54" alt="" /><small>Cardápio</small></li>
+              </ul>
+            </div>
+
+            <div class="perfil__grade">
+              <span class="perfil__tag">Grade</span>
+              <img src="ig-grade-1.jpg" width="300" height="400" alt="Post de aniversário da Delícia's Burger" />
+              <img src="ig-grade-2.jpg" width="300" height="400" alt="Post: combo de lanches, anéis de cebola e fritas com cheddar" />
+              <img src="ig-grade-3.jpg" width="300" height="400" alt="Post: Burger ou combo?" />
+              <img src="ig-grade-4.jpg" width="300" height="323" alt="Post: dois burgers com fritas e refrigerantes" />
+              <img src="ig-grade-5.jpg" width="300" height="323" alt="Post: É hoje! Dia do Hamburger" />
+              <img src="ig-grade-6.jpg" width="300" height="323" alt="Post: burger por apenas R$ 10" />
+            </div>
           </div>
-          <figcaption>Esquema ilustrativo do perfil estruturado</figcaption>
+          <figcaption>
+            <span>Perfil atual da Delícia's Burger no Instagram</span>
+            <a href="https://www.instagram.com/deliciasburger/" target="_blank" rel="noopener">Abrir @deliciasburger</a>
+          </figcaption>
         </figure>
       </div>
     </section>
