@@ -189,9 +189,9 @@ Páginas de uma só tela, independentes do painel, publicadas junto com o site.
 
 - Cada pasta tem tudo o que a página usa: o HTML (estilos e script embutidos), a logo da Evolua Meu Negócio e a
   imagem de prévia (`og.png`) que aparece quando o link é enviado pelo WhatsApp.
-- Os botões **Contratar** abrem o WhatsApp com a mensagem pronta do plano. O número que recebe as mensagens fica
-  em `WHATSAPP_NUMERO`, no script ao final do HTML (só dígitos, com DDI e DDD, ex.: `5511999999999`). Vazio, o
-  WhatsApp abre com a mensagem e a pessoa escolhe o contato.
+- Os botões **Contratar** abrem uma conversa no WhatsApp da Evolua Meu Negócio, (27) 99853-9014, com a mensagem
+  pronta do plano. Para trocar o número, altere `WHATSAPP_NUMERO` no script ao final do HTML (só dígitos, com DDI
+  e DDD, ex.: `5527998539014`) e os links `wa.me/...` do próprio HTML, usados quando o JavaScript não carrega.
 - As páginas pedem para não aparecer em buscadores (`noindex`): são enviadas direto para o cliente.
 
 ## Testes
