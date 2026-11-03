@@ -176,7 +176,23 @@ functions/api/     Rotas do servidor (Cloudflare Pages Functions)
 server/            Código comum do servidor: contas, sessões, senhas, Google
 migrations/        Tabelas do banco D1
 e2e/               Testes de ponta a ponta no navegador
+public/propostas/  Páginas de propostas comerciais da Evolua Meu Negócio (HTML estático)
 ```
+
+## Propostas comerciais
+
+Páginas de uma só tela, independentes do painel, publicadas junto com o site.
+
+| Cliente | Endereço | Arquivo |
+| --- | --- | --- |
+| Delícias Burguer | `/propostas/delicias-burguer/` | `public/propostas/delicias-burguer/index.html` |
+
+- Cada pasta tem tudo o que a página usa: o HTML (estilos e script embutidos), a logo da Evolua Meu Negócio e a
+  imagem de prévia (`og.png`) que aparece quando o link é enviado pelo WhatsApp.
+- Os botões **Contratar** abrem o WhatsApp com a mensagem pronta do plano. O número que recebe as mensagens fica
+  em `WHATSAPP_NUMERO`, no script ao final do HTML (só dígitos, com DDI e DDD, ex.: `5511999999999`). Vazio, o
+  WhatsApp abre com a mensagem e a pessoa escolhe o contato.
+- As páginas pedem para não aparecer em buscadores (`noindex`): são enviadas direto para o cliente.
 
 ## Testes
 
