@@ -186,7 +186,7 @@ Páginas de uma só tela, separadas do painel: cada proposta é publicada como u
 
 | Cliente | Endereço | Pasta | Publicar |
 | --- | --- | --- | --- |
-| Delícia’s Burger | https://proposta-delicias-burguer.bottlenose-derby.workers.dev | `propostas/delicias-burguer/` | `npm run deploy:proposta` |
+| Delícia’s Burger | https://delicias-burger-proposta.bottlenose-derby.workers.dev | `propostas/delicias-burguer/` | `npm run deploy:proposta` |
 
 - `site/` tem tudo o que a página usa: o HTML (estilos e script embutidos), a logo da Evolua Meu Negócio, a
   imagem de prévia (`og.png`) que aparece quando o link é enviado pelo WhatsApp e os cabeçalhos (`_headers`).
