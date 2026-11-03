@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "deploy": "npm run build && wrangler pages deploy --branch main",
+    "deploy:proposta": "cd propostas/delicias-burguer && wrangler pages deploy . --project-name proposta-delicias-burguer --branch main --commit-dirty=true",
     "dev:api": "npm run build && wrangler d1 migrations apply evolua-meus-estudos --local --persist-to .wrangler/local && wrangler pages dev --port 8788 --persist-to .wrangler/local",
     "db:migrate": "wrangler d1 migrations apply evolua-meus-estudos --remote"
   },

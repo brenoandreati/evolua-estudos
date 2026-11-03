@@ -176,23 +176,39 @@ functions/api/     Rotas do servidor (Cloudflare Pages Functions)
 server/            Código comum do servidor: contas, sessões, senhas, Google
 migrations/        Tabelas do banco D1
 e2e/               Testes de ponta a ponta no navegador
-public/propostas/  Páginas de propostas comerciais da Evolua Meu Negócio (HTML estático)
+propostas/        Propostas comerciais da Evolua Meu Negócio, cada uma publicada como site próprio
 ```
 
 ## Propostas comerciais
 
-Páginas de uma só tela, independentes do painel, publicadas junto com o site.
+Páginas de uma só tela, separadas do painel: cada proposta é publicada como um projeto próprio na Cloudflare
+Pages, com endereço próprio.
 
-| Cliente | Endereço | Arquivo |
-| --- | --- | --- |
-| Delícias Burguer | `/propostas/delicias-burguer/` | `public/propostas/delicias-burguer/index.html` |
+| Cliente | Endereço | Pasta | Publicar |
+| --- | --- | --- | --- |
+| Delícias Burguer | https://proposta-delicias-burguer.pages.dev | `propostas/delicias-burguer/` | `npm run deploy:proposta` |
 
 - Cada pasta tem tudo o que a página usa: o HTML (estilos e script embutidos), a logo da Evolua Meu Negócio e a
   imagem de prévia (`og.png`) que aparece quando o link é enviado pelo WhatsApp.
 - Os botões **Contratar** abrem uma conversa no WhatsApp da Evolua Meu Negócio, (27) 99853-9014, com a mensagem
   pronta do plano. Para trocar o número, altere `WHATSAPP_NUMERO` no script ao final do HTML (só dígitos, com DDI
   e DDD, ex.: `5527998539014`) e os links `wa.me/...` do próprio HTML, usados quando o JavaScript não carrega.
-- As páginas pedem para não aparecer em buscadores (`noindex`): são enviadas direto para o cliente.
+- As páginas pedem para não aparecer em buscadores (`noindex`, também no `_headers`): são enviadas direto
+  para o cliente.
+
+### Publicar a proposta
+
+Precisa de um token da Cloudflare com a permissão **Cloudflare Pages: Edit** em `CLOUDFLARE_API_TOKEN` (e
+`CLOUDFLARE_ACCOUNT_ID`, se o token tiver acesso a mais de uma conta).
+
+```bash
+npx wrangler pages project create proposta-delicias-burguer --production-branch main   # só na primeira vez
+npm run deploy:proposta
+```
+
+O endereço `proposta-delicias-burguer.pages.dev` vale se o nome estiver livre na Cloudflare; se não estiver, a
+Cloudflare acrescenta um sufixo e é preciso atualizar `og:url` e `og:image` no HTML. A publicação roda dentro da
+pasta da proposta, para não levar junto as funções nem o banco do painel.
 
 ## Testes
 
