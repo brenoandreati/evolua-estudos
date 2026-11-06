@@ -147,6 +147,46 @@ quando começa uma atividade.
 - A tela mostra o percentual arredondado (ex.: 38%), mas o cálculo é exato (37,5%, exibido ao lado do total).
 - Atividades excluídas não entram no cálculo. Sem atividades, o progresso é 0%.
 
+## Carrinho cervejeiro em 3D
+
+Página à parte, publicada junto com o site em **`/carrinho-cervejeiro`** (arquivo `carrinho-cervejeiro.html`).
+É uma montagem interativa em 3D de um carrinho cervejeiro móvel para cervejaria artesanal, feita com
+[three.js](https://threejs.org) e sem nenhum arquivo de imagem ou modelo externo: o aço escovado, os rótulos
+e a tela do medidor são gerados no próprio navegador.
+
+- **Carrinho** em aço inox AISI 304 com três prateleiras de bordas dobradas e perfis de reforço, colunas de
+  tubo quadrado, puxador com manopla e quatro **rodízios giratórios Ø125 mm** (dois com freio).
+- **Tanques** horizontais fixados por berços e cintas: **ÁGUA** na prateleira inferior e **CERVEJA** na
+  intermediária, cada um com válvula borboleta na saída, manômetro e engate de CO₂ (o produto é empurrado por
+  pressão de gás — sem bomba e sem cabos) e válvula de alívio.
+- **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 DN50** (macho roscado, porca
+  ranhurada e espigão prensado) levam o produto a um manifold com duas válvulas e daí ao medidor.
+- **Medidor eletromagnético compacto** (representação de um Picomag DN50) com **bateria interna**: o display
+  acorda, faz o autoteste, indica “tubo vazio” enquanto a linha enche e passa a mostrar **vazão (até
+  42 m³/h)**, **temperatura**, totalizador, condutividade e velocidade, atualizados em tempo real.
+- A **mangueira de saída** termina numa bica com suporte sobre um ralo linear, onde cai o jato.
+
+Como usar:
+
+| Ação | Como |
+| --- | --- |
+| Girar, aproximar, deslocar | Arrastar, rolar/pinçar, arrastar com o botão direito |
+| Ligar/desligar o fluxo | Botão **Iniciar fluxo**, clique no medidor ou tecla <kbd>Espaço</kbd> |
+| Escolher o produto | **ÁGUA**/**CERVEJA**, clique no tanque ou nas válvulas, teclas <kbd>A</kbd>/<kbd>C</kbd> |
+| Vazão alvo | Controle deslizante de 0 a 42 m³/h |
+| Ver o interior do medidor | **Raio-X do medidor** (<kbd>X</kbd>): bobinas, eletrodos, campo magnético e bateria |
+| Desmontar e montar | **Vista explodida** (<kbd>E</kbd>) |
+| Legendas e foco | **Legendas** (<kbd>L</kbd>); clique numa legenda para levar a câmera até a peça |
+
+Ao trocar de produto com o fluxo ligado, o novo fluido empurra o anterior pelo medidor e pela mangueira de
+saída — a temperatura e a condutividade no display mudam quando a cerveja chega aos eletrodos. Para mostrar o
+líquido avançando, o deslocamento visual é exibido em câmera lenta; as leituras usam a vazão real.
+
+O código fica em `src/carrinho-cervejeiro/`: `simulation.ts` é a lógica do circuito (sem 3D, com testes em
+`simulation.test.ts`), `scene.ts` monta o modelo a partir das peças (`cart.ts`, `tanks.ts`, `manifold.ts`,
+`picomag.ts`, `hoses.ts`, `parts.ts`), `fluid.ts` é o shader do líquido e `main.ts` cuida da câmera, da
+interação e do painel. A marca Picomag aparece apenas como referência ilustrativa do equipamento.
+
 ## Onde ficam os dados
 
 Tudo fica no banco D1 da Cloudflare, separado por conta, e é salvo automaticamente a cada alteração. Ao voltar
@@ -171,7 +211,8 @@ src/
 ├── components/    Componentes reutilizáveis (atividades, disciplinas, layout, interface)
 ├── pages/         Uma tela por item do menu
 ├── hooks/         Relógio (data de hoje)
-└── styles/        Tokens de design e estilos
+├── styles/        Tokens de design e estilos
+└── carrinho-cervejeiro/  Montagem 3D do carrinho cervejeiro (página carrinho-cervejeiro.html)
 functions/api/     Rotas do servidor (Cloudflare Pages Functions)
 server/            Código comum do servidor: contas, sessões, senhas, Google
 migrations/        Tabelas do banco D1
@@ -181,7 +222,7 @@ e2e/               Testes de ponta a ponta no navegador
 ## Testes
 
 ```bash
-npm test           # testes unitários (datas, urgência, progresso, filtros, dados, servidor, acesso)
+npm test           # testes unitários (datas, urgência, progresso, filtros, dados, servidor, acesso, circuito do carrinho)
 npm run test:e2e   # testes no navegador, em tela de computador e de celular, com o servidor local da Cloudflare
 ```
 

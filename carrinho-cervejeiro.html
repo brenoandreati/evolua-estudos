@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#e8ebef" />
+    <meta
+      name="description"
+      content="Montagem interativa em 3D de um carrinho cervejeiro móvel em aço inox: tanques de água e cerveja, mangueiras com conexões DIN 11851 de 2 polegadas e medidor de vazão eletromagnético Picomag a bateria."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Carrinho Cervejeiro 3D</title>
+  </head>
+  <body class="cc">
+    <canvas id="scene" class="cc-canvas" aria-label="Carrinho cervejeiro em 3D. Arraste para girar e role para aproximar."></canvas>
+
+    <header class="cc-brand">
+      <p class="cc-eyebrow">Cervejaria artesanal · carrinho móvel</p>
+      <h1>Carrinho cervejeiro sem fios</h1>
+      <p class="cc-sub">Inox AISI 304 · DIN 11851 DN50 (2") · Picomag a bateria</p>
+    </header>
+
+    <aside class="cc-panel" aria-label="Controles do circuito">
+      <div class="cc-grab" aria-hidden="true"></div>
+
+      <section class="cc-section">
+        <h2 class="cc-label" id="source-label">Produto na linha</h2>
+        <div class="cc-segmented" role="radiogroup" aria-labelledby="source-label">
+          <button type="button" role="radio" class="cc-seg" data-source="agua" aria-checked="false">
+            <span class="cc-dot cc-dot--agua" aria-hidden="true"></span>ÁGUA
+          </button>
+          <button type="button" role="radio" class="cc-seg" data-source="cerveja" aria-checked="true">
+            <span class="cc-dot cc-dot--cerveja" aria-hidden="true"></span>CERVEJA
+          </button>
+        </div>
+      </section>
+
+      <section class="cc-section">
+        <div class="cc-row">
+          <label class="cc-label" for="setpoint">Vazão alvo</label>
+          <output id="setpoint-value" class="cc-output" for="setpoint">24,0 m³/h</output>
+        </div>
+        <input id="setpoint" class="cc-range" type="range" min="0" max="42" step="0.5" value="24" />
+        <div class="cc-scale" aria-hidden="true"><span>0</span><span>21</span><span>42 m³/h</span></div>
+      </section>
+
+      <button type="button" id="flow-toggle" class="cc-cta" aria-pressed="false">
+        <svg class="cc-cta-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+        <span>Iniciar fluxo</span>
+      </button>
+      <p id="status" class="cc-status" role="status" aria-live="polite">Montando o carrinho…</p>
+
+      <details class="cc-details" id="telemetry" open>
+        <summary>
+          <span>Picomag ao vivo</span>
+          <span id="meter-state" class="cc-badge">Display desligado</span>
+        </summary>
+        <dl class="cc-grid">
+          <div><dt>Vazão</dt><dd><span id="t-flow">0,00</span><small>m³/h</small></dd></div>
+          <div><dt>Temperatura</dt><dd><span id="t-temp">21,0</span><small>°C</small></dd></div>
+          <div><dt>Totalizador</dt><dd><span id="t-total">0,0</span><small>L</small></dd></div>
+          <div><dt>Condutividade</dt><dd><span id="t-cond">– – –</span><small>µS/cm</small></dd></div>
+          <div><dt>Velocidade</dt><dd><span id="t-vel">0,00</span><small>m/s</small></dd></div>
+          <div><dt>Pressão CO₂</dt><dd><span id="t-press">1,00</span><small>bar</small></dd></div>
+        </dl>
+        <div class="cc-spark-wrap">
+          <canvas id="spark" class="cc-spark" width="600" height="120" aria-label="Gráfico da vazão nos últimos 30 segundos"></canvas>
+          <span class="cc-spark-label">últimos 30 s</span>
+        </div>
+        <button type="button" id="reset-total" class="cc-link">Zerar totalizador</button>
+      </details>
+
+      <section class="cc-section cc-toggles" aria-label="Visualização">
+        <button type="button" class="cc-chip" id="toggle-xray" aria-pressed="false">Raio-X do medidor</button>
+        <button type="button" class="cc-chip" id="toggle-labels" aria-pressed="true">Legendas</button>
+        <button type="button" class="cc-chip" id="toggle-explode" aria-pressed="false">Vista explodida</button>
+        <button type="button" class="cc-chip" id="toggle-rotate" aria-pressed="false">Girar</button>
+        <button type="button" class="cc-chip" id="reset-view">Vista geral</button>
+      </section>
+
+      <p class="cc-keys">Atalhos: <kbd>Espaço</kbd> fluxo · <kbd>A</kbd>/<kbd>C</kbd> produto · <kbd>X</kbd> raio-X · <kbd>E</kbd> explodir</p>
+    </aside>
+
+    <div id="callouts" class="cc-callouts" aria-label="Componentes"></div>
+    <div id="tooltip" class="cc-tooltip" role="tooltip" hidden></div>
+    <p class="cc-hint" id="hint">Arraste para girar · role ou pince para aproximar · clique no Picomag para ligar o fluxo</p>
+    <p class="cc-note">Representação ilustrativa. Marcas citadas pertencem aos respectivos titulares.</p>
+
+    <div id="loading" class="cc-loading" aria-hidden="true"><span></span>Gerando aço inox…</div>
+    <div id="fallback" class="cc-fallback" hidden>
+      <p><strong>Este navegador não conseguiu abrir a cena 3D.</strong></p>
+      <p>Ative a aceleração de hardware (WebGL) ou abra a página em outro navegador.</p>
+    </div>
+
+    <script type="module" src="/src/carrinho-cervejeiro/main.ts"></script>
+  </body>
+</html>
