@@ -3,26 +3,40 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { Materials } from './materials';
 import { GeometryCache, hexNut, mesh, pipeRunGeometry, tagPick } from './parts';
 
-/** Medidas do carrinho, em metros. */
+/**
+ * Carrinho de estrutura aberta: uma única base baixa (bandeja com borda de contenção),
+ * colunas nos cantos, travessas só no fundo e nas cabeceiras — a frente fica livre para
+ * colocar, retirar e drenar os tanques — puxador e quatro rodízios giratórios reforçados.
+ * Medidas em metros.
+ */
 export const CART = {
-  length: 1.1,
+  /** Comprimento (X) e largura (Z) da base. */
+  length: 1.44,
   width: 0.62,
-  /** Altura da face superior de cada prateleira (inferior, intermediária, superior). */
-  shelves: [0.19, 0.6, 1.01] as const,
-  lip: 0.035,
-  post: 0.032,
+  /** Altura da face superior da base. */
+  deckTop: 0.21,
+  /** Altura da borda de contenção da base. */
+  lip: 0.026,
   casterHeight: 0.175,
   wheelRadius: 0.0625,
-  /** Centro das colunas. */
-  postX: 0.537,
-  postZ: 0.297,
+  post: 0.035,
+  /** Centro das colunas: o quadro envolve os tanques; depois dele fica o vão do medidor. */
+  postXLeft: -0.7,
+  postXRight: 0.3,
+  postZ: 0.29,
+  /** Altura das travessas superiores. */
+  railY: 0.92,
+  /** Travessa intermediária (só no fundo). */
+  midRailY: 0.52,
+  casterX: 0.62,
+  casterZ: 0.235,
 };
 
 export interface CartModel {
   group: THREE.Group;
-  frame: THREE.Group;
+  deck: THREE.Group;
   posts: THREE.Group[];
-  shelves: THREE.Group[];
+  rails: THREE.Group;
   handle: THREE.Group;
   casters: THREE.Group[];
 }
@@ -31,59 +45,56 @@ export function createCart(materials: Materials, cache: GeometryCache): CartMode
   const group = new THREE.Group();
   group.name = 'carrinho';
 
-  const frame = new THREE.Group();
-  frame.name = 'estrutura';
-  group.add(frame);
-
-  const shelves = CART.shelves.map((y, index) => {
-    const shelf = createShelf(materials, cache, y, index === 2);
-    tagPick(shelf, {
-      id: 'estrutura',
-      title: index === 2 ? 'Prateleira superior com borda de contenção' : index === 1 ? 'Prateleira intermediária reforçada' : 'Prateleira inferior reforçada',
-      description: 'Chapa de aço inox AISI 304 escovado, bordas dobradas e perfis de reforço sob a chapa (carga de até 150 kg por prateleira).',
-    });
-    group.add(shelf);
-    return shelf;
+  const deck = createDeck(materials, cache);
+  tagPick(deck, {
+    id: 'estrutura',
+    title: 'Base única de perfil baixo',
+    description: 'Bandeja de inox AISI 304 sobre quadro de tubo retangular, a 21 cm do piso, com borda de contenção e bujão de dreno. Os dois tanques ficam em pé sobre ela.',
   });
+  group.add(deck);
 
   const posts: THREE.Group[] = [];
-  const postHeight = CART.shelves[2] + 0.022 - 0.155;
+  const postHeight = CART.railY + CART.post / 2 - CART.deckTop;
   const postGeometry = new RoundedBoxGeometry(CART.post, postHeight, CART.post, 2, 0.004);
   const capGeometry = new RoundedBoxGeometry(CART.post + 0.002, 0.008, CART.post + 0.002, 2, 0.003);
-  const bumperGeometry = new THREE.CylinderGeometry(0.029, 0.029, 0.03, 32);
+  const footGeometry = new RoundedBoxGeometry(0.07, 0.006, 0.07, 2, 0.002);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const post = new THREE.Group();
       post.name = 'coluna';
-      post.position.set(sx * CART.postX, 0, sz * CART.postZ);
+      post.position.set(sx < 0 ? CART.postXLeft : CART.postXRight, 0, sz * CART.postZ);
       const tube = mesh(postGeometry, materials.steelVertical);
-      tube.position.y = 0.155 + postHeight / 2;
+      tube.position.y = CART.deckTop + postHeight / 2;
       post.add(tube);
       const cap = mesh(capGeometry, materials.gripFoam);
-      cap.position.y = 0.155 + postHeight + 0.003;
+      cap.position.y = CART.deckTop + postHeight + 0.003;
       post.add(cap);
-      const foot = mesh(capGeometry, materials.gripFoam);
-      foot.position.y = 0.152;
+      const foot = mesh(footGeometry, materials.steelSatin);
+      foot.position.y = CART.deckTop + 0.003;
       post.add(foot);
-      // Para-choque de borracha na base da coluna.
-      const bumper = mesh(bumperGeometry, materials.rubber);
-      bumper.position.y = 0.172;
-      post.add(bumper);
       tagPick(post, {
         id: 'estrutura',
-        title: 'Coluna em tubo quadrado 32 mm',
-        description: 'Aço inox AISI 304 soldado às prateleiras, com para-choque de borracha na base.',
+        title: 'Coluna em tubo quadrado 35 mm',
+        description: 'Estrutura aberta de aço inox AISI 304: sem prateleiras, com a frente livre para acesso aos tanques.',
       });
-      frame.add(post);
+      group.add(post);
       posts.push(post);
     }
   }
+
+  const rails = createRails(materials);
+  tagPick(rails, {
+    id: 'estrutura',
+    title: 'Travessas do fundo e das cabeceiras',
+    description: 'Fecham o quadro sem dividir o espaço: a frente fica aberta para colocar, inspecionar e drenar os tanques. As cintas dos tanques se prendem à travessa do fundo.',
+  });
+  group.add(rails);
 
   const handle = createHandle(materials);
   tagPick(handle, {
     id: 'estrutura',
     title: 'Puxador tubular com manopla',
-    description: 'Tubo de 1" em inox curvado, fixado nas colunas por abraçadeiras.',
+    description: 'Tubo de 1" em inox curvado, fixado nas colunas da cabeceira por abraçadeiras.',
   });
   group.add(handle);
 
@@ -93,10 +104,10 @@ export function createCart(materials: Materials, cache: GeometryCache): CartMode
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const caster = createCaster(materials, cache, { brake: sx < 0, swivel: swivels[i++] });
-      caster.position.set(sx * 0.49, CART.casterHeight, sz * 0.255);
+      caster.position.set(sx * CART.casterX, CART.casterHeight, sz * CART.casterZ);
       tagPick(caster, {
         id: 'rodizios',
-        title: sx < 0 ? 'Rodízio giratório Ø125 mm com freio' : 'Rodízio giratório Ø125 mm',
+        title: sx < 0 ? 'Rodízio giratório reforçado Ø125 mm com freio' : 'Rodízio giratório reforçado Ø125 mm',
         description: 'Garfo em inox, rolamento de esferas duplo na giratória e roda de borracha atóxica sobre cubo de poliamida.',
       });
       group.add(caster);
@@ -104,147 +115,160 @@ export function createCart(materials: Materials, cache: GeometryCache): CartMode
     }
   }
 
-  return { group, frame, posts, shelves, handle, casters };
+  return { group, deck, posts, rails, handle, casters };
 }
 
-function createShelf(materials: Materials, cache: GeometryCache, y: number, rim: boolean): THREE.Group {
-  const shelf = new THREE.Group();
-  shelf.name = 'prateleira';
-  shelf.position.y = y;
-  const { length: L, width: W, lip } = CART;
-  const t = 0.003;
+/** Base: quadro de tubo retangular, chapa e borda de contenção com bujão de dreno. */
+function createDeck(materials: Materials, cache: GeometryCache): THREE.Group {
+  const deck = new THREE.Group();
+  deck.name = 'base';
+  const { length: L, width: W, deckTop: top, lip } = CART;
+  const plateT = 0.006;
+  const frameH = 0.028;
+  const frameY = top - plateT - frameH / 2;
 
-  const panel = mesh(cache.get('shelf-panel', () => new THREE.BoxGeometry(L, t, W)), materials.steel);
-  panel.position.y = -t / 2;
-  shelf.add(panel);
+  const plate = mesh(new THREE.BoxGeometry(L, plateT, W), materials.steel);
+  plate.position.y = top - plateT / 2;
+  deck.add(plate);
 
-  const lipX = cache.get('shelf-lip-x', () => new THREE.BoxGeometry(L, lip, t));
-  const lipZ = cache.get('shelf-lip-z', () => new THREE.BoxGeometry(t, lip, W - 2 * t));
+  // Quadro de tubo retangular 50 × 30 mm e travessas.
+  const longTube = new RoundedBoxGeometry(L, frameH, 0.05, 2, 0.003);
+  const shortTube = new RoundedBoxGeometry(0.05, frameH, W - 0.1, 2, 0.003);
   for (const s of [-1, 1]) {
-    const front = mesh(lipX, materials.steel);
-    front.position.set(0, -lip / 2, s * (W / 2 - t / 2));
-    shelf.add(front);
-    const side = mesh(lipZ, materials.steel);
-    side.position.set(s * (L / 2 - t / 2), -lip / 2, 0);
-    shelf.add(side);
+    const a = mesh(longTube, materials.steelSatin);
+    a.position.set(0, frameY, s * (W / 2 - 0.025));
+    deck.add(a);
+  }
+  for (const x of [-L / 2 + 0.025, -0.24, 0.24, L / 2 - 0.025]) {
+    const b = mesh(shortTube, materials.steelSatin);
+    b.position.set(x, frameY, 0);
+    deck.add(b);
   }
 
-  // Bainha dobrada na borda inferior das abas.
-  const hemX = cache.get('shelf-hem-x', () => {
-    const g = new THREE.CylinderGeometry(0.0032, 0.0032, L, 12);
-    g.rotateZ(Math.PI / 2);
-    return g;
-  });
-  const hemZ = cache.get('shelf-hem-z', () => {
-    const g = new THREE.CylinderGeometry(0.0032, 0.0032, W, 12);
-    g.rotateX(Math.PI / 2);
-    return g;
-  });
-  for (const s of [-1, 1]) {
-    const a = mesh(hemX, materials.steelSatin);
-    a.position.set(0, -lip, s * (W / 2 - 0.0035));
-    shelf.add(a);
-    const b = mesh(hemZ, materials.steelSatin);
-    b.position.set(s * (L / 2 - 0.0035), -lip, 0);
-    shelf.add(b);
-  }
-
-  // Perfis ômega de reforço sob a chapa.
-  const channel = cache.get('shelf-channel', () => new RoundedBoxGeometry(L - 0.03, 0.022, 0.04, 2, 0.003));
-  for (const z of [-0.17, 0.17]) {
-    const c = mesh(channel, materials.steelSatin);
-    c.position.set(0, -t - 0.011, z);
-    shelf.add(c);
-  }
-  const cross = cache.get('shelf-cross', () => new RoundedBoxGeometry(0.04, 0.02, W - 0.03, 2, 0.003));
-  for (const x of [-0.27, 0, 0.27]) {
-    const c = mesh(cross, materials.steelSatin);
-    c.position.set(x, -t - 0.01, 0);
-    shelf.add(c);
-  }
-
-  if (rim) {
-    // Borda de contenção voltada para cima, com aresta enrolada.
-    const rimH = 0.022;
-    const rimX = cache.get('shelf-rim-x', () => new THREE.BoxGeometry(L, rimH, t));
-    const rimZ = cache.get('shelf-rim-z', () => new THREE.BoxGeometry(t, rimH, W - 2 * t));
-    const rollX = cache.get('shelf-roll-x', () => {
-      const g = new THREE.CylinderGeometry(0.0042, 0.0042, L, 14);
-      g.rotateZ(Math.PI / 2);
-      return g;
-    });
-    const rollZ = cache.get('shelf-roll-z', () => {
-      const g = new THREE.CylinderGeometry(0.0042, 0.0042, W, 14);
-      g.rotateX(Math.PI / 2);
-      return g;
-    });
-    for (const s of [-1, 1]) {
-      const a = mesh(rimX, materials.steel);
-      a.position.set(0, rimH / 2, s * (W / 2 - t / 2));
-      shelf.add(a);
-      const b = mesh(rimZ, materials.steel);
-      b.position.set(s * (L / 2 - t / 2), rimH / 2, 0);
-      shelf.add(b);
-      const c = mesh(rollX, materials.steelPolished);
-      c.position.set(0, rimH, s * (W / 2 - 0.002));
-      shelf.add(c);
-      const d = mesh(rollZ, materials.steelPolished);
-      d.position.set(s * (L / 2 - 0.002), rimH, 0);
-      shelf.add(d);
+  // Calços onde os rodízios são parafusados.
+  const spacer = new RoundedBoxGeometry(0.118, top - plateT - (CART.casterHeight + 0.012), 0.102, 2, 0.003);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const block = mesh(spacer, materials.steelSatin);
+      block.position.set(sx * CART.casterX, (top - plateT + CART.casterHeight + 0.012) / 2, sz * CART.casterZ);
+      deck.add(block);
     }
   }
-  return shelf;
+
+  // Borda de contenção dobrada para cima, com aresta enrolada.
+  const t = 0.003;
+  const lipX = new THREE.BoxGeometry(L, lip, t);
+  const lipZ = new THREE.BoxGeometry(t, lip, W - 2 * t);
+  const rollX = new THREE.CylinderGeometry(0.0042, 0.0042, L, 14);
+  rollX.rotateZ(Math.PI / 2);
+  const rollZ = new THREE.CylinderGeometry(0.0042, 0.0042, W, 14);
+  rollZ.rotateX(Math.PI / 2);
+  for (const s of [-1, 1]) {
+    const a = mesh(lipX, materials.steel);
+    a.position.set(0, top + lip / 2, s * (W / 2 - t / 2));
+    deck.add(a);
+    const b = mesh(lipZ, materials.steel);
+    b.position.set(s * (L / 2 - t / 2), top + lip / 2, 0);
+    deck.add(b);
+    const c = mesh(rollX, materials.steelPolished);
+    c.position.set(0, top + lip, s * (W / 2 - 0.002));
+    deck.add(c);
+    const d = mesh(rollZ, materials.steelPolished);
+    d.position.set(s * (L / 2 - 0.002), top + lip, 0);
+    deck.add(d);
+  }
+
+  // Bujão de dreno da bandeja (canto dianteiro, lado do puxador).
+  const drain = mesh(cache.get('deck-drain', () => new THREE.CylinderGeometry(0.016, 0.018, 0.008, 24)), materials.steelPolished);
+  drain.position.set(-L / 2 + 0.06, top + 0.004, W / 2 - 0.06);
+  deck.add(drain);
+  const drainNut = mesh(cache.get('deck-drain-nut', () => hexNut(0.009, 0.006)), materials.steelPolished);
+  drainNut.position.set(-L / 2 + 0.06, top + 0.011, W / 2 - 0.06);
+  deck.add(drainNut);
+  return deck;
+}
+
+/** Travessas superiores (fundo e laterais do quadro) e intermediária do fundo. A frente fica aberta. */
+function createRails(materials: Materials): THREE.Group {
+  const rails = new THREE.Group();
+  rails.name = 'travessas';
+  const s = 0.03;
+  const spanX = CART.postXRight - CART.postXLeft;
+  const midX = (CART.postXRight + CART.postXLeft) / 2;
+  const spanZ = 2 * CART.postZ;
+  const back = new RoundedBoxGeometry(spanX, s, s, 2, 0.004);
+  for (const y of [CART.railY, CART.midRailY]) {
+    const r = mesh(back, materials.steel);
+    r.position.set(midX, y, -CART.postZ);
+    rails.add(r);
+  }
+  const end = new RoundedBoxGeometry(s, s, spanZ, 2, 0.004);
+  for (const x of [CART.postXLeft, CART.postXRight]) {
+    const r = mesh(end, materials.steel);
+    r.position.set(x, CART.railY, 0);
+    rails.add(r);
+  }
+  // Cantoneiras soldadas nas uniões.
+  const gusset = new RoundedBoxGeometry(0.05, 0.05, 0.006, 2, 0.002);
+  for (const [x, inward] of [[CART.postXLeft, 1], [CART.postXRight, -1]]) {
+    for (const y of [CART.railY - 0.035]) {
+      const g = mesh(gusset, materials.steelSatin);
+      g.position.set(x + inward * 0.035, y, -CART.postZ + 0.019);
+      rails.add(g);
+    }
+  }
+  return rails;
 }
 
 function createHandle(materials: Materials): THREE.Group {
   const handle = new THREE.Group();
   handle.name = 'puxador';
-  const x0 = -0.578;
-  const x1 = -0.625;
-  const z = 0.26;
+  const x0 = -0.742;
+  const x1 = -0.79;
+  const z = CART.postZ;
+  const yTop = 1.13;
   const points = [
-    new THREE.Vector3(x0, 0.84, -z),
-    new THREE.Vector3(x0, 1.06, -z),
-    new THREE.Vector3(x1, 1.15, -z),
-    new THREE.Vector3(x1, 1.15, z),
-    new THREE.Vector3(x0, 1.06, z),
-    new THREE.Vector3(x0, 0.84, z),
+    new THREE.Vector3(x0, 0.66, -z),
+    new THREE.Vector3(x0, 1.04, -z),
+    new THREE.Vector3(x1, yTop, -z),
+    new THREE.Vector3(x1, yTop, z),
+    new THREE.Vector3(x0, 1.04, z),
+    new THREE.Vector3(x0, 0.66, z),
   ];
   handle.add(mesh(pipeRunGeometry(points, 0.0127, 0.06, 20), materials.steelPolished));
-  // Tampões nas pontas do tubo.
   const plug = new THREE.CylinderGeometry(0.0128, 0.0128, 0.006, 20);
   for (const s of [-1, 1]) {
     const p = mesh(plug, materials.gripFoam);
-    p.position.set(x0, 0.837, s * z);
+    p.position.set(x0, 0.657, s * z);
     handle.add(p);
   }
-  const grip = mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.36, 32), materials.gripFoam);
+  const grip = mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.4, 32), materials.gripFoam);
   grip.rotation.x = Math.PI / 2;
-  grip.position.set(x1, 1.15, 0);
+  grip.position.set(x1, yTop, 0);
   handle.add(grip);
   const collarGeometry = new THREE.CylinderGeometry(0.0205, 0.0205, 0.008, 32);
-  for (const ring of [-0.18, 0.18]) {
+  for (const ring of [-0.2, 0.2]) {
     const collar = mesh(collarGeometry, materials.steelPolished);
     collar.rotation.x = Math.PI / 2;
-    collar.position.set(x1, 1.15, ring);
+    collar.position.set(x1, yTop, ring);
     handle.add(collar);
   }
-  // Abraçadeiras que prendem o puxador às colunas.
-  const clampPlate = new RoundedBoxGeometry(0.03, 0.04, 0.03, 2, 0.004);
+  // Abraçadeiras que prendem o puxador às colunas da cabeceira.
+  const clampPlate = new RoundedBoxGeometry(0.026, 0.04, 0.03, 2, 0.004);
   const clampRing = new THREE.TorusGeometry(0.0145, 0.0035, 10, 24);
   clampRing.rotateX(Math.PI / 2);
   const bolt = hexNut(0.005, 0.006);
-  bolt.rotateZ(Math.PI / 2);
+  bolt.rotateX(Math.PI / 2);
   for (const s of [-1, 1]) {
-    for (const y of [0.88, 1.0]) {
+    for (const y of [0.7, 0.9]) {
       const plate = mesh(clampPlate, materials.steelSatin);
-      plate.position.set(-0.562, y, s * z);
+      plate.position.set(-0.729, y, s * z);
       handle.add(plate);
       const ring = mesh(clampRing, materials.steelSatin);
       ring.position.set(x0, y, s * z);
       handle.add(ring);
       const b = mesh(bolt, materials.steelPolished);
-      b.position.set(-0.5765, y, s * (z + 0.0185));
+      b.position.set(-0.729, y, s * (z + 0.018));
       handle.add(b);
     }
   }
@@ -263,7 +287,7 @@ function createCaster(materials: Materials, cache: GeometryCache, options: Caste
   const H = CART.casterHeight;
   const axle = new THREE.Vector2(0.038, -(H - CART.wheelRadius));
 
-  // Calço de fixação sob a prateleira e placa do rodízio.
+  // Calço de fixação sob a base e placa do rodízio.
   const pad = mesh(cache.get('caster-pad', () => new RoundedBoxGeometry(0.115, 0.012, 0.1, 2, 0.003)), materials.steelSatin);
   pad.position.y = 0.006;
   caster.add(pad);

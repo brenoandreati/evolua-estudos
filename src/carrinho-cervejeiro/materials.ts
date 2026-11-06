@@ -114,7 +114,7 @@ export function dropletTexture(): THREE.CanvasTexture {
 }
 
 export interface Materials {
-  /** Aço inox escovado (estrutura, prateleiras, tanques). */
+  /** Aço inox escovado (estrutura, base, tanques). */
   steel: THREE.MeshPhysicalMaterial;
   /** Aço inox escovado no sentido vertical (colunas). */
   steelVertical: THREE.MeshPhysicalMaterial;
@@ -293,7 +293,7 @@ export function studioEnvironment(): THREE.Scene {
   softbox(1.4, 7, 5.5, [7, 3.5, 5]);
   softbox(1.2, 7, 2.6, [-7.5, 3.5, 3], 1.06);
   softbox(9, 1.1, 2.4, [0, 3, -9]);
-  softbox(7, 0.9, 1.8, [1, 1.2, 9]);
+  softbox(4, 0.7, 1.2, [3, 1.2, 9]);
   softbox(2.2, 2.2, 3.5, [-4, 6, -6], 0.95);
   return env;
 }

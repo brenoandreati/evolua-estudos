@@ -6,7 +6,6 @@ import {
   type ButterflyValve,
   GeometryCache,
   butterflyValve,
-  cylinderX,
   dinUnion,
   latheX,
   mesh,
@@ -15,10 +14,18 @@ import {
 } from './parts';
 import { createFluidMaterial, remapCylinderUv, type FluidMaterial } from './fluid';
 import type { FluidId } from './simulation';
+import { CART } from './cart';
+import { METER } from './picomag';
 
-/** Altura do eixo da tubulação sobre a prateleira superior. */
-export const PIPE_Y = 1.1;
-export const METER_X = -0.02;
+/** Altura do eixo do medidor e do topo do coletor. */
+export const PIPE_Y = 0.66;
+/** Centro do medidor, no vão aberto da base, na ponta oposta ao puxador. */
+export const METER_X = 0.655;
+/** Coletor vertical entre o tanque da direita e o medidor. */
+const HEADER_X = 0.38;
+const HEADER_BOTTOM = 0.385;
+const LINE_Y: Record<FluidId, number> = { agua: 0.56, cerveja: 0.42 };
+const VALVE_Z = 0.1;
 
 export interface ManifoldModel {
   group: THREE.Group;
@@ -29,73 +36,70 @@ export interface ManifoldModel {
   anchor: THREE.Object3D;
 }
 
-/** Manifold com duas válvulas borboleta e um tê que alimenta o medidor. */
+/**
+ * Coletor vertical: as duas entradas (com válvula borboleta e união DIN voltadas para a frente)
+ * sobem por um tubo que faz a curva para o medidor — escoamento ascendente, que mantém o tubo
+ * de medição sempre cheio.
+ */
 export function createManifold(materials: Materials, cache: GeometryCache): ManifoldModel {
   const group = new THREE.Group();
   group.name = 'manifold';
-  const y = PIPE_Y;
-  const teeX = 0.3;
-  const valveX = 0.42;
-  const lineZ: Record<FluidId, number> = { agua: 0.12, cerveja: -0.12 };
   const accent: Record<FluidId, THREE.Material> = { agua: materials.accentWater, cerveja: materials.accentBeer };
+  const meterInletX = METER_X - (METER.stub + 0.11);
 
-  // Base parafusada na prateleira superior e suportes com abraçadeira.
-  const base = mesh(new RoundedBoxGeometry(0.2, 0.006, 0.34, 2, 0.002), materials.steelSatin);
-  base.position.set(0.36, 1.013, 0);
-  group.add(base);
-  const postHeight = y - DIN.pipeRadius - 0.004 - 1.016;
-  const post = new RoundedBoxGeometry(0.024, postHeight, 0.024, 2, 0.003);
-  const clamp = new THREE.TorusGeometry(DIN.pipeRadius + 0.003, 0.0035, 8, 24, Math.PI);
-  clamp.rotateZ(Math.PI);
-  const supports: Array<{ x: number; z: number; alongX: boolean }> = [
-    { x: teeX, z: 0, alongX: false },
-    { x: 0.35, z: lineZ.agua, alongX: true },
-    { x: 0.35, z: lineZ.cerveja, alongX: true },
-  ];
-  for (const s of supports) {
-    const p = mesh(post, materials.steelSatin);
-    p.position.set(s.x, 1.016 + postHeight / 2, s.z);
-    group.add(p);
-    const c = mesh(clamp, materials.steelPolished);
-    c.position.set(s.x, y, s.z);
-    if (s.alongX) c.rotation.y = Math.PI / 2;
-    group.add(c);
-  }
+  const header = pipeRunGeometry(
+    [new THREE.Vector3(HEADER_X, HEADER_BOTTOM, 0), new THREE.Vector3(HEADER_X, PIPE_Y, 0), new THREE.Vector3(meterInletX, PIPE_Y, 0)],
+    DIN.pipeRadius,
+    0.055,
+  );
+  group.add(mesh(header, materials.steelPolished));
 
-  // Tê sanitário e ramal para o medidor.
-  const teeGeometry = new THREE.CylinderGeometry(DIN.pipeRadius + 0.003, DIN.pipeRadius + 0.003, 0.075, 36);
-  teeGeometry.rotateX(Math.PI / 2);
-  const tee = mesh(teeGeometry, materials.steelPolished);
-  tee.position.set(teeX, y, 0);
-  group.add(tee);
-  const branchStart = METER_X + 0.205;
-  const branch = mesh(cylinderX(DIN.pipeRadius, teeX - branchStart, branchStart, 36), materials.steelPolished);
-  branch.position.y = y;
-  group.add(branch);
+  // Tampa com abraçadeira no fundo do coletor (dreno).
+  const capFerrule = mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.012, 32), materials.steelPolished);
+  capFerrule.position.set(HEADER_X, HEADER_BOTTOM - 0.002, 0);
+  group.add(capFerrule);
+  const capClamp = new THREE.TorusGeometry(0.036, 0.0045, 8, 32);
+  capClamp.rotateX(Math.PI / 2);
+  const clampMesh = mesh(capClamp, materials.steelSatin);
+  clampMesh.position.set(HEADER_X, HEADER_BOTTOM - 0.004, 0);
+  group.add(clampMesh);
+  const capPlate = mesh(new THREE.CylinderGeometry(0.034, 0.03, 0.008, 32), materials.steelPolished);
+  capPlate.position.set(HEADER_X, HEADER_BOTTOM - 0.012, 0);
+  group.add(capPlate);
+
+  // Pé do coletor parafusado na base.
+  const postBottom = CART.deckTop;
+  const postTop = HEADER_BOTTOM - 0.016;
+  const post = mesh(new RoundedBoxGeometry(0.03, postTop - postBottom, 0.03, 2, 0.003), materials.steelSatin);
+  post.position.set(HEADER_X, (postTop + postBottom) / 2, 0);
+  group.add(post);
+  const foot = mesh(new RoundedBoxGeometry(0.08, 0.006, 0.08, 2, 0.002), materials.steelSatin);
+  foot.position.set(HEADER_X, postBottom + 0.003, 0);
+  group.add(foot);
+
   const weldGeometry = new THREE.TorusGeometry(DIN.pipeRadius + 0.001, 0.0022, 8, 36);
-  for (const z of [-0.0375, 0.0375]) {
-    const w = mesh(weldGeometry, materials.weld);
-    w.position.set(teeX, y, z);
-    group.add(w);
-  }
+  const stubGeometry = new THREE.CylinderGeometry(DIN.pipeRadius, DIN.pipeRadius, VALVE_Z - 0.049, 36);
+  stubGeometry.rotateX(Math.PI / 2);
+  stubGeometry.translate(0, 0, (VALVE_Z - 0.049) / 2);
 
   const ports = {} as Record<FluidId, THREE.Object3D>;
   const valves = {} as Record<FluidId, ButterflyValve>;
   const branchLengths = {} as Record<FluidId, number>;
   for (const id of ['agua', 'cerveja'] as FluidId[]) {
-    const z = lineZ[id];
-    const s = Math.sign(z);
-    const run = pipeRunGeometry(
-      [new THREE.Vector3(teeX, y, s * 0.0375), new THREE.Vector3(teeX, y, z), new THREE.Vector3(valveX - 0.049, y, z)],
-      DIN.pipeRadius,
-      0.05,
-    );
-    group.add(mesh(run, materials.steelPolished));
-    const valve = butterflyValve(materials, cache, accent[id], { open: 0, closed: -Math.PI / 2 });
-    valve.group.position.set(valveX, y, z);
+    const y = LINE_Y[id];
+    const stub = mesh(stubGeometry, materials.steelPolished);
+    stub.position.set(HEADER_X, y, 0);
+    group.add(stub);
+    const weld = mesh(weldGeometry, materials.weld);
+    weld.position.set(HEADER_X, y, DIN.pipeRadius + 0.001);
+    group.add(weld);
+
+    const valve = butterflyValve(materials, cache, accent[id], { open: 0, closed: Math.PI / 2 });
+    valve.group.rotation.y = -Math.PI / 2;
+    valve.group.position.set(HEADER_X, y, VALVE_Z);
     tagPick(valve.group, {
       id: `valvula-manifold-${id}`,
-      title: `Válvula da linha ${id === 'agua' ? 'ÁGUA' : 'CERVEJA'} no manifold`,
+      title: `Válvula da linha ${id === 'agua' ? 'ÁGUA' : 'CERVEJA'} no coletor`,
       description: 'Seleciona qual tanque alimenta o medidor. Clique para trocar a linha ativa.',
       action: `linha-${id}`,
     });
@@ -103,29 +107,31 @@ export function createManifold(materials: Materials, cache: GeometryCache): Mani
     valves[id] = valve;
 
     const union = dinUnion(materials, cache);
-    union.position.set(valveX + 0.05, y, z);
+    union.rotation.y = -Math.PI / 2;
+    union.position.set(HEADER_X, y, VALVE_Z + 0.05);
     tagPick(union, {
       id: 'din',
       title: 'União sanitária DIN 11851 DN50 (2")',
-      description: 'Conexão higiênica desmontável entre a mangueira e o manifold — sem ferramentas especiais além da chave de gancho.',
+      description: 'Conexão higiênica desmontável entre a mangueira e o coletor — sem ferramentas especiais além da chave de gancho.',
     });
     group.add(union);
     const port = new THREE.Object3D();
-    port.position.set(valveX + 0.05 + DIN.unionLength, y, z);
+    port.rotation.y = -Math.PI / 2;
+    port.position.set(HEADER_X, y, VALVE_Z + 0.05 + DIN.unionLength);
     group.add(port);
     ports[id] = port;
-    branchLengths[id] = DIN.unionLength + 0.1 + run.parameters.path.getLength() + 0.0375;
+    branchLengths[id] = DIN.unionLength + 0.1 + (VALVE_Z - 0.05) + (PIPE_Y - y);
   }
 
   const anchor = new THREE.Object3D();
-  anchor.position.set(valveX, y + 0.09, lineZ.cerveja);
+  anchor.position.set(HEADER_X, LINE_Y.agua + 0.13, VALVE_Z);
   group.add(anchor);
 
   return {
     group,
     ports,
     valves,
-    lengths: { branch: branchLengths, header: 0.0375 + (teeX - branchStart) + 0.12 },
+    lengths: { branch: branchLengths, header: 0.08 + (meterInletX - HEADER_X) + 0.12 },
     anchor,
   };
 }
@@ -145,16 +151,16 @@ export interface DischargeModel {
   anchor: THREE.Object3D;
 }
 
-export function createDischarge(materials: Materials, cache: GeometryCache, lightDir: THREE.Vector3): DischargeModel {
+export function createDischarge(materials: Materials, cache: GeometryCache, lightDir: THREE.Vector3, drainLength = 0.8): DischargeModel {
   const group = new THREE.Group();
   group.name = 'descarga';
   const drain = new THREE.Group();
   drain.name = 'ralo';
 
   // Ralo linear de piso em inox.
-  const cx = -1.0;
+  const cx = -1.01;
   const cz = 0.32;
-  const L = 0.8;
+  const L = drainLength;
   const Wd = 0.16;
   const longSide = new THREE.BoxGeometry(L, 0.008, 0.012);
   const shortSide = new THREE.BoxGeometry(0.012, 0.008, Wd);
@@ -171,7 +177,7 @@ export function createDischarge(materials: Materials, cache: GeometryCache, ligh
   channel.position.set(cx, 0.0012, cz);
   channel.receiveShadow = true;
   drain.add(channel);
-  const barCount = 62;
+  const barCount = Math.round(62 * (L / 0.8));
   const bars = new THREE.InstancedMesh(new THREE.BoxGeometry(0.0042, 0.006, Wd - 0.024), materials.steelSatin, barCount);
   const m = new THREE.Matrix4();
   for (let i = 0; i < barCount; i++) {

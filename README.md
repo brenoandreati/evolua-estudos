@@ -154,19 +154,25 @@ Página à parte, publicada junto com o site em **`/carrinho-cervejeiro`** (arqu
 [three.js](https://threejs.org) e sem nenhum arquivo de imagem ou modelo externo: o aço escovado, os rótulos
 e a tela do medidor são gerados no próprio navegador.
 
-- **Carrinho** em aço inox AISI 304 com três prateleiras de bordas dobradas e perfis de reforço, colunas de
-  tubo quadrado, puxador com manopla e quatro **rodízios giratórios Ø125 mm** (dois com freio).
-- **Tanques** horizontais fixados por berços e cintas: **ÁGUA** na prateleira inferior e **CERVEJA** na
-  intermediária, cada um com válvula borboleta na saída, manômetro e engate de CO₂ (o produto é empurrado por
-  pressão de gás — sem bomba e sem cabos) e válvula de alívio.
+- **Carrinho de estrutura aberta** em aço inox AISI 304, **sem prateleiras**: uma única **base de perfil
+  baixo** (bandeja a 21 cm do piso, com borda de contenção e bujão de dreno), colunas de tubo quadrado e
+  travessas só no fundo e nas laterais do quadro — a frente fica livre para colocar, inspecionar e drenar os
+  tanques. Puxador com manopla e quatro **rodízios giratórios reforçados Ø125 mm** (dois com freio).
+- **Dois tanques verticais**, em pé e lado a lado sobre a base — **ÁGUA** e **CERVEJA**, 95 L cada —, apoiados
+  em três pés com sapatas niveladoras e presos por cinta à travessa do fundo. Cada um tem **saída inferior** no
+  ponto mais baixo do tampo (curva de 90°, válvula borboleta e união DIN voltadas para a frente, à mão para
+  conectar e esvaziar), boca de visita, manômetro e engate de CO₂ no topo (o produto é empurrado por pressão
+  de gás — sem bomba e sem cabos) e válvula de alívio.
 - **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 DN50** (macho roscado, porca
-  ranhurada e espigão prensado) levam o produto a um manifold com duas válvulas e daí ao medidor.
+  ranhurada e espigão prensado) levam o produto das saídas inferiores a um coletor vertical com duas válvulas,
+  instalado no vão aberto da base; o escoamento sobe até o medidor, o que mantém o tubo de medição cheio.
 - **Medidor eletromagnético compacto** no formato do Picomag DN50 — corpo de inox escovado com anel azul,
   display colorido na lateral, marcações gravadas no topo, sextavados nas conexões e conector M12 por baixo
-  (sem cabo) — com **bateria interna**: o display
-  acorda, faz o autoteste, indica “tubo vazio” enquanto a linha enche e passa a mostrar **vazão (até
-  42 m³/h)**, **temperatura**, totalizador, condutividade e velocidade, atualizados em tempo real.
-- A **mangueira de saída** termina numa bica com suporte sobre um ralo linear, onde cai o jato.
+  (sem cabo) — com **bateria interna**: o display acorda, faz o autoteste, indica “tubo vazio” enquanto a
+  linha enche e passa a mostrar **vazão (até 42 m³/h)** e **temperatura** em tempo real; totalizador,
+  condutividade e velocidade aparecem no painel ao lado.
+- O **medidor fica na ponta das mangueiras**, num pedestal no vão da base; a **mangueira de saída** termina
+  numa bica com suporte sobre um ralo linear, onde cai o jato.
 
 Como usar:
 

@@ -89,11 +89,11 @@ async function start(): Promise<void> {
   floor.receiveShadow = true;
   scene.add(floor);
   const contact = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.75, 1.05),
+    new THREE.PlaneGeometry(2.0, 1.05),
     new THREE.MeshBasicMaterial({ map: contactShadowTexture(), transparent: true, depthWrite: false, opacity: 0.5 }),
   );
   contact.rotation.x = -Math.PI / 2;
-  contact.position.set(-0.02, 0.0015, 0);
+  contact.position.set(0, 0.0015, 0);
   scene.add(contact);
 
   const model = buildBreweryCart(materials, lightDir);
@@ -114,10 +114,10 @@ async function start(): Promise<void> {
   controls.zoomSpeed = 0.9;
 
   const HOME = {
-    target: new THREE.Vector3(-0.2, 0.58, 0.08),
-    targetMobile: new THREE.Vector3(-0.08, 0.6, 0.06),
-    azimuth: THREE.MathUtils.degToRad(36),
-    elevation: THREE.MathUtils.degToRad(19),
+    target: new THREE.Vector3(0.14, 0.56, 0.16),
+    targetMobile: new THREE.Vector3(0.12, 0.6, 0.12),
+    azimuth: THREE.MathUtils.degToRad(26),
+    elevation: THREE.MathUtils.degToRad(17),
   };
   const layout = { width: 1, height: 1, offsetX: 0, offsetY: 0, fit: 4 };
 
@@ -160,7 +160,7 @@ async function start(): Promise<void> {
     const visibleW = w - layout.offsetX;
     const visibleH = h - sheet - title;
     const half = Math.min(Math.atan((t * visibleW) / VH), Math.atan((t * visibleH) / VH));
-    const radius = mobile ? 1.0 : 1.02;
+    const radius = mobile ? 1.12 : 1.1;
     layout.fit = radius / Math.sin(half);
     if (!userMovedCamera && !tween) {
       const view = homeView();
@@ -259,8 +259,9 @@ async function start(): Promise<void> {
     if (model.assembly.target !== (on ? 0 : 1)) {
       // Afasta a câmera para caber a vista explodida (e volta ao montar).
       const view = homeView();
-      const position = on ? spherical(view.target, HOME.azimuth, HOME.elevation + 0.08, layout.fit * 1.32).add(new THREE.Vector3(0, 0.2, 0)) : view.position;
-      const target = on ? view.target.clone().add(new THREE.Vector3(0, 0.2, 0)) : view.target;
+      const lift = new THREE.Vector3(0, 0.38, 0);
+      const position = on ? spherical(view.target, HOME.azimuth, HOME.elevation + 0.06, layout.fit * 1.5).add(lift) : view.position;
+      const target = on ? view.target.clone().add(lift) : view.target;
       flyTo(position, target, 1.4);
     }
     model.assembly.target = on ? 0 : 1;

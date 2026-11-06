@@ -41,7 +41,13 @@ export interface PicomagModel {
   setXray(on: boolean): void;
 }
 
-export function createPicomag(materials: Materials, cache: GeometryCache, lightDir: THREE.Vector3): PicomagModel {
+/**
+ * `flow`: sentido do escoamento ao longo de X (+1 = da esquerda para a direita de quem olha o display).
+ * O anel azul fica sempre na ponta esquerda, como no aparelho.
+ */
+export function createPicomag(materials: Materials, cache: GeometryCache, lightDir: THREE.Vector3, flow: 1 | -1 = -1): PicomagModel {
+  const inSide = -flow;
+  const outSide = flow;
   const group = new THREE.Group();
   group.name = 'picomag';
   const pick = {
@@ -103,21 +109,23 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
     group.add(neck);
   }
 
-  // Entrada: porca DIN do manifold sobre o macho do medidor (tubo liso em vez de espigão).
+  // Entrada: porca DIN do coletor sobre o macho do medidor (tubo liso em vez de espigão).
   const inletUnion = dinUnion(materials, cache);
-  inletUnion.position.x = METER.stub;
+  inletUnion.position.x = inSide * METER.stub;
+  inletUnion.rotation.y = inSide > 0 ? 0 : Math.PI;
   inletUnion.children[2].visible = false;
   group.add(inletUnion);
-  const inletLiner = mesh(cylinderX(DIN.pipeRadius, 0.07, METER.stub + 0.045, 32), materials.steelPolished);
+  const inletLiner = mesh(cylinderX(DIN.pipeRadius, 0.07, inSide > 0 ? METER.stub + 0.045 : -(METER.stub + 0.115), 32), materials.steelPolished);
   group.add(inletLiner);
   const inletPort = new THREE.Object3D();
-  inletPort.position.x = METER.stub + 0.11;
+  inletPort.position.x = inSide * (METER.stub + 0.11);
+  inletPort.rotation.y = inSide > 0 ? 0 : Math.PI;
   group.add(inletPort);
 
   // Saída: união da mangueira de saída.
   const outletUnion = dinUnion(materials, cache);
-  outletUnion.rotation.y = Math.PI;
-  outletUnion.position.x = -METER.stub;
+  outletUnion.rotation.y = outSide > 0 ? 0 : Math.PI;
+  outletUnion.position.x = outSide * METER.stub;
   tagPick(outletUnion, {
     id: 'din',
     title: 'União sanitária DIN 11851 DN50 (2")',
@@ -125,8 +133,8 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   });
   group.add(outletUnion);
   const outletPort = new THREE.Object3D();
-  outletPort.position.x = -(METER.stub + DIN.unionLength);
-  outletPort.rotation.y = Math.PI;
+  outletPort.position.x = outSide * (METER.stub + DIN.unionLength);
+  outletPort.rotation.y = outSide > 0 ? 0 : Math.PI;
   group.add(outletPort);
 
   // Conector M12 por baixo — sem cabo: o medidor funciona com a bateria interna.
@@ -200,7 +208,7 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   liner.renderOrder = 1;
   internals.add(liner);
   const fluidMaterial = createFluidMaterial(METER.coreLength, { lightDir });
-  const fluid = new THREE.Mesh(remapCylinderUv(cylinderX(0.0236, METER.coreLength, -METER.coreLength / 2, 32, true), true), fluidMaterial);
+  const fluid = new THREE.Mesh(remapCylinderUv(cylinderX(0.0236, METER.coreLength, -METER.coreLength / 2, 32, true), flow < 0), fluidMaterial);
   fluid.name = 'liquido-medidor';
   internals.add(fluid);
 

@@ -52,6 +52,7 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
   const cart = createCart(materials, cache);
   root.add(cart.group);
 
+  // Dois tanques em pé, lado a lado, sobre a base única.
   const tanks: Record<FluidId, TankModel> = {
     agua: createTank(materials, cache, {
       fluid: 'agua',
@@ -59,7 +60,8 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
       number: '01',
       accent: materials.accentWater,
       accentColor: '#1f6fd1',
-      description: 'Água cervejeira para enxágue, empurre de linha e testes de vazão. Fixado na prateleira inferior por berços e cintas de inox.',
+      description: 'Água cervejeira para enxágue, empurre de linha e testes de vazão. Em pé sobre a base, preso por cinta à travessa do fundo; esvazia por completo pela saída inferior.',
+      backRailZ: -CART.postZ,
     }),
     cerveja: createTank(materials, cache, {
       fluid: 'cerveja',
@@ -67,22 +69,29 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
       number: '02',
       accent: materials.accentBeer,
       accentColor: '#c97a06',
-      description: 'Cerveja pronta, gelada e carbonatada, empurrada por CO₂. Fixado na prateleira intermediária por berços e cintas de inox.',
+      description: 'Cerveja pronta, gelada e carbonatada, empurrada por CO₂. Em pé sobre a base, preso por cinta à travessa do fundo; esvazia por completo pela saída inferior.',
+      backRailZ: -CART.postZ,
     }),
   };
-  tanks.agua.group.position.set(TANK.centerX, CART.shelves[0] + TANK.saddleHeight + TANK.radius, 0);
-  tanks.cerveja.group.position.set(TANK.centerX, CART.shelves[1] + TANK.saddleHeight + TANK.radius, 0);
+  tanks.agua.group.position.set(TANK_X.agua, CART.deckTop, 0);
+  tanks.cerveja.group.position.set(TANK_X.cerveja, CART.deckTop, 0);
   root.add(tanks.agua.group, tanks.cerveja.group);
 
   const manifold = createManifold(materials, cache);
   root.add(manifold.group);
 
-  const picomag = createPicomag(materials, cache, lightDir);
+  // Medidor na ponta das mangueiras, depois do coletor; escoamento da esquerda para a direita.
+  const picomag = createPicomag(materials, cache, lightDir, 1);
   picomag.group.position.set(METER_X, PIPE_Y, 0);
   addMeterMount(picomag.group, materials);
   root.add(picomag.group);
 
-  const discharge = createDischarge(materials, cache, lightDir);
+  // Descarga à frente da cabeceira do medidor: bica virada para a frente, sobre o ralo.
+  const discharge = createDischarge(materials, cache, lightDir, 0.46);
+  for (const object of [discharge.group, discharge.drain]) {
+    object.rotation.y = Math.PI / 2;
+    object.position.set(0.68, 0, -0.46);
+  }
   root.add(discharge.group);
   root.add(discharge.drain);
 
@@ -91,24 +100,25 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
   // ——— Mangueiras ———
   const port = (object: THREE.Object3D) => {
     const position = object.getWorldPosition(new THREE.Vector3());
-    const direction = new THREE.Vector3(1, 0, 0).applyQuaternion(object.getWorldQuaternion(new THREE.Quaternion()));
+    const direction = new THREE.Vector3(1, 0, 0).transformDirection(object.matrixWorld);
     return { position, direction };
   };
   const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
+  // A mangueira da ÁGUA passa à frente do tanque de CERVEJA, acima da mangueira dela.
   const aguaCurve = hoseCurve(
     port(tanks.agua.hosePort),
-    [v(0.79, 0.3, 0.05), v(0.86, 0.5, 0.12), v(0.87, 0.8, 0.15), v(0.81, 1.04, 0.14), v(0.71, 1.105, 0.124)],
+    [v(-0.4, 0.33, 0.57), v(-0.22, 0.43, 0.65), v(0.06, 0.51, 0.67), v(0.29, 0.56, 0.58)],
     port(manifold.ports.agua),
   );
   const cervejaCurve = hoseCurve(
     port(tanks.cerveja.hosePort),
-    [v(0.765, 0.72, -0.05), v(0.79, 0.86, -0.11), v(0.765, 1.03, -0.125), v(0.7, 1.1, -0.121)],
+    [v(0.09, 0.31, 0.56), v(0.23, 0.355, 0.565), v(0.36, 0.41, 0.445)],
     port(manifold.ports.cerveja),
   );
   const outletCurve = hoseCurve(
     port(picomag.outletPort),
-    [v(-0.34, 1.098, 0.035), v(-0.46, 1.112, 0.17), v(-0.56, 1.105, 0.33), v(-0.65, 0.98, 0.43), v(-0.7, 0.76, 0.45), v(-0.705, 0.56, 0.4), v(-0.73, 0.45, 0.345)],
+    [v(0.98, 0.635, 0.045), v(1.025, 0.52, 0.175)],
     port(discharge.port),
   );
 
@@ -125,7 +135,7 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
   root.add(hoses.agua.group, hoses.cerveja.group, hoses.outlet.group);
 
   // ——— Circuito para a simulação ———
-  const tankOutlet = 0.06 + 0.1 + DIN.unionLength;
+  const tankOutlet = TANK.apexY - TANK.outletY + TANK.valveZ + 0.05 + DIN.unionLength;
   const segments: SegmentSpec[] = [
     { id: 'tank-agua', length: tankOutlet },
     { id: 'supply-agua', length: hoses.agua.length },
@@ -160,18 +170,18 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
     const sz = Math.sign(caster.position.z);
     assembly.add(caster, v(sx * 0.1, -0.22, sz * 0.1), 0.02 * i);
   });
-  assembly.add(cart.shelves[0], v(0, -0.07, 0), 0.06);
+  assembly.add(cart.deck, v(0, -0.06, 0), 0.06);
   cart.posts.forEach((post, i) => {
-    assembly.add(post, v(Math.sign(post.position.x) * 0.17, 0.06, Math.sign(post.position.z) * 0.15), 0.1 + 0.015 * i);
+    assembly.add(post, v(Math.sign(post.position.x) * 0.2, 0.05, Math.sign(post.position.z) * 0.18), 0.12 + 0.015 * i);
   });
-  assembly.add(cart.shelves[1], v(0, 0.2, 0), 0.16);
-  assembly.add(cart.shelves[2], v(0, 0.5, 0), 0.22);
-  assembly.add(cart.handle, v(-0.34, 0.56, 0), 0.28);
-  assembly.add(tanks.agua.group, v(0, 0.02, 0.66), 0.32);
-  assembly.add(tanks.cerveja.group, v(0, 0.24, 0.76), 0.38);
-  assembly.add(manifold.group, v(0.3, 0.64, -0.12), 0.44);
-  assembly.add(picomag.group, v(0, 0.86, 0.24), 0.5);
-  assembly.add(discharge.group, v(-0.3, 0.3, 0.22), 0.46);
+  assembly.add(cart.rails, v(0, 0.55, -0.14), 0.2);
+  assembly.add(cart.handle, v(-0.36, 0.3, 0), 0.26);
+  // Os tanques sobem na vertical (e um pouco para a frente), como ao serem retirados.
+  assembly.add(tanks.agua.group, v(0, 0.85, 0.3), 0.32);
+  assembly.add(tanks.cerveja.group, v(0, 1.0, 0.3), 0.38);
+  assembly.add(manifold.group, v(0.22, 0.25, 0.28), 0.44);
+  assembly.add(picomag.group, v(0.35, 0.45, 0.15), 0.5);
+  assembly.add(discharge.group, v(0.3, 0.2, 0.3), 0.46);
   assembly.hoseStart = 0.6;
 
   // ——— Pontos de legenda ———
@@ -181,58 +191,63 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
     parent.add(o);
     return o;
   };
-  const hoseMid = hoses.agua.curve.getPointAt(0.42);
   const callouts: CalloutAnchor[] = [
     { id: 'picomag', label: 'Picomag DN50', object: picomag.displayAnchor, focusDistance: 1.05 },
-    { id: 'cerveja', label: 'Tanque CERVEJA', object: anchor(tanks.cerveja.group, -0.33, 0.07, TANK.radius + 0.03), focusDistance: 1.5 },
-    { id: 'agua', label: 'Tanque ÁGUA', object: anchor(tanks.agua.group, -0.33, 0.07, TANK.radius + 0.03), focusDistance: 1.5 },
-    { id: 'din', label: 'União DIN 11851 · 2"', object: anchor(tanks.cerveja.group, 0.63, TANK.outletY + 0.055, 0.03), focusDistance: 0.75 },
-    { id: 'manifold', label: 'Manifold', object: manifold.anchor, focusDistance: 0.95 },
-    { id: 'mangueira', label: 'Mangueira cristal 2"', object: anchor(root, hoseMid.x + 0.04, hoseMid.y, hoseMid.z + 0.05), focusDistance: 1.3 },
-    { id: 'rodizios', label: 'Rodízio Ø125 mm', object: anchor(cart.casters[3], 0.05, -0.1, 0.06), focusDistance: 0.85 },
-    { id: 'descarga', label: 'Descarga', object: discharge.anchor, focusDistance: 1.25 },
-    { id: 'estrutura', label: 'Inox AISI 304', object: anchor(cart.shelves[2], -0.36, 0.03, 0.31), focusDistance: 1.9 },
+    { id: 'cerveja', label: 'Tanque CERVEJA', object: tanks.cerveja.labelAnchor, focusDistance: 1.8 },
+    { id: 'agua', label: 'Tanque ÁGUA', object: tanks.agua.labelAnchor, focusDistance: 1.8 },
+    { id: 'din', label: 'Saída inferior · DIN 2"', object: tanks.agua.outletAnchor, focusDistance: 0.85 },
+    { id: 'manifold', label: 'Coletor', object: manifold.anchor, focusDistance: 1.0 },
+    { id: 'rodizios', label: 'Rodízio reforçado', object: anchor(cart.casters[3], 0.05, -0.1, 0.06), focusDistance: 0.85 },
+    { id: 'descarga', label: 'Descarga', object: discharge.anchor, focusDistance: 1.2 },
+    { id: 'estrutura', label: 'Estrutura aberta inox', object: anchor(cart.posts[1], 0, CART.railY + 0.05, 0), focusDistance: 2.2 },
+    { id: 'base', label: 'Base baixa', object: anchor(cart.deck, -0.12, CART.deckTop + 0.04, CART.width / 2), focusDistance: 1.4 },
   ];
 
-  const splash = new Splash(discharge.splashOrigin);
+  const splash = new Splash(discharge.group.localToWorld(discharge.splashOrigin.clone()));
   root.add(splash.group);
 
   return { root, cart, tanks, manifold, picomag, discharge, hoses, segments, paths, bindings, assembly, callouts, splash };
 }
 
-/** Base do medidor parafusada na prateleira superior. */
+/** Centro de cada tanque ao longo do carrinho. */
+const TANK_X: Record<FluidId, number> = { agua: -0.42, cerveja: 0.06 };
+
+/** Pedestal do medidor parafusado na base, com apoios sob os sextavados. */
 function addMeterMount(meter: THREE.Group, materials: Materials) {
-  const shelfTop = CART.shelves[2] - PIPE_Y;
-  const plate = mesh(new RoundedBoxGeometry(0.22, 0.006, 0.13, 2, 0.002), materials.steelSatin);
-  plate.position.set(0, shelfTop + 0.003, 0);
+  const baseY = CART.deckTop - PIPE_Y;
+  const plate = mesh(new RoundedBoxGeometry(0.24, 0.006, 0.12, 2, 0.002), materials.steelSatin);
+  plate.position.set(0, baseY + 0.003, 0);
   meter.add(plate);
-  // Dois apoios sob os sextavados: o espaço sob o corpo fica livre para o conector M12.
+  // O espaço sob o corpo fica livre para o conector M12.
   const postTop = -0.0345;
-  const postHeight = postTop - (shelfTop + 0.006);
-  const post = new RoundedBoxGeometry(0.014, postHeight, 0.05, 2, 0.003);
+  const postHeight = postTop - (baseY + 0.006);
+  const post = new RoundedBoxGeometry(0.024, postHeight, 0.04, 2, 0.003);
   const cradle = new THREE.TorusGeometry(0.0375, 0.0035, 8, 24, Math.PI / 3);
   cradle.rotateZ(Math.PI + Math.PI / 3);
   cradle.rotateY(Math.PI / 2);
   for (const x of [-0.0835, 0.0835]) {
     const p = mesh(post, materials.steelSatin);
-    p.position.set(x, shelfTop + 0.006 + postHeight / 2, 0);
+    p.position.set(x, baseY + 0.006 + postHeight / 2, 0);
     meter.add(p);
     const c = mesh(cradle, materials.steelSatin);
     c.position.set(x, 0, 0);
     meter.add(c);
   }
+  const tie = mesh(new RoundedBoxGeometry(0.19, 0.02, 0.012, 2, 0.003), materials.steelSatin);
+  tie.position.set(0, baseY + 0.16, 0);
+  meter.add(tie);
   const nut = new THREE.CylinderGeometry(0.006, 0.006, 0.006, 6);
-  for (const x of [-0.09, 0.09]) {
-    for (const z of [-0.045, 0.045]) {
+  for (const x of [-0.1, 0.1]) {
+    for (const z of [-0.042, 0.042]) {
       const n = mesh(nut, materials.steelPolished);
-      n.position.set(x, shelfTop + 0.009, z);
+      n.position.set(x, baseY + 0.009, z);
       meter.add(n);
     }
   }
   tagPick(plate, {
     id: 'picomag',
-    title: 'Base do medidor',
-    description: 'Suporte em inox parafusado na prateleira superior; o medidor fica alinhado com o manifold.',
+    title: 'Pedestal do medidor',
+    description: 'Suporte em inox parafusado na base do carrinho; o medidor fica na altura da cintura, alinhado com o coletor.',
   });
 }
 
