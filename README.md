@@ -166,7 +166,7 @@ e a tela do medidor são gerados no próprio navegador.
 - **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 DN50** (macho roscado, porca
   ranhurada e espigão prensado) levam o produto das saídas inferiores a um coletor vertical com duas válvulas,
   instalado no vão aberto da base; o escoamento sobe até o medidor, o que mantém o tubo de medição cheio.
-- **Medidor eletromagnético compacto** no formato do Picomag DN50 — corpo de inox escovado com anel azul,
+- **Medidor eletromagnético compacto** no formato do Picomag — corpo de inox escovado com anel azul,
   display colorido na lateral, marcações gravadas no topo, sextavados nas conexões e conector M12 por baixo
   (sem cabo) — com **bateria interna**: o display acorda, faz o autoteste, indica “tubo vazio” enquanto a
   linha enche e passa a mostrar **vazão (até 42 m³/h)** e **temperatura** em tempo real; totalizador,

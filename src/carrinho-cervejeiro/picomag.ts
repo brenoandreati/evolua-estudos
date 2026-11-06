@@ -52,7 +52,7 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   group.name = 'picomag';
   const pick = {
     id: 'picomag',
-    title: 'Picomag DN50 — medidor de vazão eletromagnético',
+    title: 'Picomag — medidor de vazão eletromagnético',
     description: 'Mede vazão (até 42 m³/h), temperatura e condutividade sem partes móveis. Bateria interna e Bluetooth: nenhum cabo no carrinho. Clique para ligar/desligar o fluxo.',
     action: 'alternar-fluxo',
   };

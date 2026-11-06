@@ -189,7 +189,7 @@ function drawBoot(ctx: CanvasRenderingContext2D, data: DisplayData) {
   ctx.fillText('Picomag', W / 2, 200);
   ctx.fillStyle = '#9aa5b0';
   ctx.font = `500 30px ${FONT}`;
-  ctx.fillText('DN50 · bateria interna', W / 2, 252);
+  ctx.fillText('Bateria interna', W / 2, 252);
   ctx.fillStyle = 'rgba(255,255,255,0.14)';
   ctx.fillRect(110, 300, W - 220, 14);
   ctx.fillStyle = BLUE;

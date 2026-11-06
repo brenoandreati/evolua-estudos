@@ -192,7 +192,7 @@ export function buildBreweryCart(materials: Materials, lightDir: THREE.Vector3):
     return o;
   };
   const callouts: CalloutAnchor[] = [
-    { id: 'picomag', label: 'Picomag DN50', object: picomag.displayAnchor, focusDistance: 1.05 },
+    { id: 'picomag', label: 'Picomag', object: picomag.displayAnchor, focusDistance: 1.05 },
     { id: 'cerveja', label: 'Tanque CERVEJA', object: tanks.cerveja.labelAnchor, focusDistance: 1.8 },
     { id: 'agua', label: 'Tanque ÁGUA', object: tanks.agua.labelAnchor, focusDistance: 1.8 },
     { id: 'din', label: 'Saída inferior · DIN 2"', object: tanks.agua.outletAnchor, focusDistance: 0.85 },
