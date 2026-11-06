@@ -176,7 +176,7 @@ export function createTank(materials: Materials, cache: GeometryCache, options: 
   tagPick(valve.group, {
     id: `valvula-${options.fluid}`,
     title: `Válvula de saída inferior — ${options.name}`,
-    description: 'Válvula borboleta DN50 no ponto mais baixo do tanque: abre a linha e permite esvaziar o tanque por completo. Clique para abrir esta linha.',
+    description: 'Válvula borboleta de 2" no ponto mais baixo do tanque: abre a linha e permite esvaziar o tanque por completo. Clique para abrir esta linha.',
     action: `linha-${options.fluid}`,
   });
   group.add(valve.group);
@@ -186,7 +186,7 @@ export function createTank(materials: Materials, cache: GeometryCache, options: 
   union.position.set(0, TANK.outletY, TANK.valveZ + 0.05);
   tagPick(union, {
     id: 'din',
-    title: 'União sanitária DIN 11851 DN50 (2")',
+    title: 'União sanitária DIN 11851 de 2"',
     description: 'Macho roscado Rd 78 × 1/6", porca ranhurada e espigão com luva prensada para a mangueira — na frente da base, à mão para conectar e drenar.',
   });
   group.add(union);
@@ -419,7 +419,7 @@ function labelTexture(options: TankOptions): THREE.CanvasTexture {
   ctx.fillText('PMT 3,0 bar', 70, 750);
   ctx.textAlign = 'right';
   ctx.fillText('Aço inox AISI 304', W - 70, 670);
-  ctx.fillText('Saída inferior DN50 · DIN 11851', W - 70, 750);
+  ctx.fillText('Saída inferior 2" · DIN 11851', W - 70, 750);
 
   ctx.fillStyle = options.accentColor;
   ctx.fillRect(0, H - 64, W, 64);

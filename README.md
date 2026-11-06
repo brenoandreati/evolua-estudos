@@ -163,7 +163,7 @@ e a tela do medidor são gerados no próprio navegador.
   ponto mais baixo do tampo (curva de 90°, válvula borboleta e união DIN voltadas para a frente, à mão para
   conectar e esvaziar), boca de visita, manômetro e engate de CO₂ no topo (o produto é empurrado por pressão
   de gás — sem bomba e sem cabos) e válvula de alívio.
-- **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 DN50** (macho roscado, porca
+- **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 de 2"** (macho roscado, porca
   ranhurada e espigão prensado) levam o produto das saídas inferiores a um coletor vertical com duas válvulas,
   instalado no vão aberto da base; o escoamento sobe até o medidor, o que mantém o tubo de medição cheio.
 - **Medidor eletromagnético compacto** no formato do Picomag — corpo de inox escovado com anel azul,

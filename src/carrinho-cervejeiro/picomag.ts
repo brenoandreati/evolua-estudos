@@ -128,7 +128,7 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   outletUnion.position.x = outSide * METER.stub;
   tagPick(outletUnion, {
     id: 'din',
-    title: 'União sanitária DIN 11851 DN50 (2")',
+    title: 'União sanitária DIN 11851 de 2"',
     description: 'Porca ranhurada sobre o macho roscado do medidor; a mangueira de saída leva o produto até o ponto de descarga.',
   });
   group.add(outletUnion);
@@ -383,7 +383,7 @@ function topPrintTexture(): THREE.CanvasTexture {
   // Linhas de dados da placa (o lado de baixo do canvas fica voltado para o display).
   ctx.font = `500 30px ${FONT}`;
   const lines = [
-    'Medidor de vazão eletromagnético · DN50 (2")',
+    'Medidor de vazão eletromagnético · 2"',
     'Faixa 0…42 m³/h · temperatura · condutividade',
     'Conexões DIN 11851 · IP67',
     'Alimentação: bateria interna de lítio',

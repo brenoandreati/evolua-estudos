@@ -111,7 +111,7 @@ export function createManifold(materials: Materials, cache: GeometryCache): Mani
     union.position.set(HEADER_X, y, VALVE_Z + 0.05);
     tagPick(union, {
       id: 'din',
-      title: 'União sanitária DIN 11851 DN50 (2")',
+      title: 'União sanitária DIN 11851 de 2"',
       description: 'Conexão higiênica desmontável entre a mangueira e o coletor — sem ferramentas especiais além da chave de gancho.',
     });
     group.add(union);
