@@ -6,16 +6,29 @@ import { DISPLAY_SIZE, drawDisplay, type DisplayData } from './display';
 import { createFluidMaterial, remapCylinderUv, type FluidMaterial } from './fluid';
 
 /**
- * Medidor de vazão eletromagnético compacto (representação ilustrativa de um Picomag DN50).
+ * Medidor de vazão eletromagnético compacto, no formato do Picomag: corpo de inox escovado
+ * com seção quadrada arredondada, anel azul numa das pontas, display colorido na lateral,
+ * marcações gravadas no topo, sextavados nas conexões e conector M12 por baixo.
  * Origem no eixo do tubo de medição; escoamento de +X (entrada) para −X (saída); display para +Z.
  */
 
+/** Medidas do corpo, em metros. */
+const BODY = {
+  length: 0.15,
+  height: 0.108,
+  depth: 0.104,
+  radius: 0.016,
+};
+
 export const METER = {
-  /** Comprimento do núcleo visível (entre os colarinhos). */
-  coreLength: 0.17,
+  /** Comprimento do núcleo de medição dentro do corpo. */
+  coreLength: BODY.length,
   /** Distância do centro até o início do macho roscado de cada lado. */
   stub: 0.095,
 };
+
+/** Display na lateral: um pouco à direita do centro, como no aparelho. */
+const SCREEN = { x: 0.011, y: 0.0005, width: 0.068, height: 0.0544 };
 
 export interface PicomagModel {
   group: THREE.Group;
@@ -37,39 +50,62 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
     description: 'Mede vazão (até 42 m³/h), temperatura e condutividade sem partes móveis. Bateria interna e Bluetooth: nenhum cabo no carrinho. Clique para ligar/desligar o fluxo.',
     action: 'alternar-fluxo',
   };
+  const halfL = BODY.length / 2;
+  const halfH = BODY.height / 2;
+  const halfD = BODY.depth / 2;
 
-  // Materiais próprios (ficam translúcidos no modo raio-X).
-  const body = materials.meterBody.clone();
-  const bezel = materials.meterBezel.clone();
-  const xrayMaterials: THREE.Material[] = [body, bezel];
+  // ——— Corpo em inox escovado no sentido do tubo ———
+  const bodyMaterial = materials.steel.clone();
+  bodyMaterial.name = 'picomag-inox';
+  bodyMaterial.color.set(0xe7eaed);
+  bodyMaterial.roughness = 0.24;
+  bodyMaterial.anisotropy = 0.85;
+  bodyMaterial.clearcoat = 0.25;
+  bodyMaterial.clearcoatRoughness = 0.2;
+  const ringMaterial = new THREE.MeshPhysicalMaterial({
+    name: 'picomag-anel-azul',
+    color: 0x2c9fe0,
+    emissive: 0x0b4f80,
+    emissiveIntensity: 0.25,
+    roughness: 0.28,
+    clearcoat: 1,
+    clearcoatRoughness: 0.12,
+  });
+  const xrayMaterials: THREE.Material[] = [bodyMaterial, ringMaterial];
 
-  const housing = mesh(new RoundedBoxGeometry(0.17, 0.2, 0.108, 5, 0.024), body);
-  housing.position.y = 0.045;
+  const housing = mesh(new RoundedBoxGeometry(BODY.length, BODY.height, BODY.depth, 6, BODY.radius), bodyMaterial);
   group.add(housing);
 
-  // Colarinhos de inox onde o tubo sai da carcaça.
-  const collar = latheX([
-    [DIN.pipeRadius, 0],
-    [0.038, 0],
-    [0.04, 0.003],
-    [0.04, 0.012],
-    [0.034, 0.016],
-    [DIN.pipeRadius, 0.016],
+  // Anel azul junto à ponta de saída.
+  const ring = mesh(
+    new RoundedBoxGeometry(0.008, BODY.height + 0.003, BODY.depth + 0.003, 5, BODY.radius + 0.0015),
+    ringMaterial,
+  );
+  ring.position.x = -halfL + 0.011;
+  group.add(ring);
+
+  // Sextavados e pescoços das conexões de processo (as duas pontas).
+  const hexGeometry = cylinderX(0.04, 0.017, 0, 6);
+  const neckGeometry = latheX([
+    [0.034, 0],
+    [0.034, 0.002],
+    [0.03, 0.004],
+    [DIN.pipeRadius + 0.001, 0.004],
+    [DIN.pipeRadius + 0.001, 0.0075],
   ]);
   for (const side of [1, -1]) {
-    const c = mesh(collar, materials.steelPolished);
-    c.position.x = side * 0.081;
-    c.scale.x = side;
-    group.add(c);
-    const stub = mesh(cylinderX(DIN.pipeRadius, 0.012, 0, 32), materials.steelPolished);
-    stub.position.x = side > 0 ? 0.084 : -0.096;
-    group.add(stub);
+    const hex = mesh(hexGeometry, materials.steelPolished);
+    hex.position.x = side > 0 ? halfL - 0.002 : -halfL + 0.002 - 0.017;
+    group.add(hex);
+    const neck = mesh(neckGeometry, materials.steelPolished);
+    neck.position.x = side * (halfL + 0.015);
+    neck.scale.x = side;
+    group.add(neck);
   }
 
-  // Entrada: macho DIN voltado para +X, recebe a porca do manifold.
+  // Entrada: porca DIN do manifold sobre o macho do medidor (tubo liso em vez de espigão).
   const inletUnion = dinUnion(materials, cache);
   inletUnion.position.x = METER.stub;
-  // A união da entrada leva um tubo liso em vez de espigão.
   inletUnion.children[2].visible = false;
   group.add(inletUnion);
   const inletLiner = mesh(cylinderX(DIN.pipeRadius, 0.07, METER.stub + 0.045, 32), materials.steelPolished);
@@ -78,7 +114,7 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   inletPort.position.x = METER.stub + 0.11;
   group.add(inletPort);
 
-  // Saída: macho voltado para −X com a união da mangueira de saída.
+  // Saída: união da mangueira de saída.
   const outletUnion = dinUnion(materials, cache);
   outletUnion.rotation.y = Math.PI;
   outletUnion.position.x = -METER.stub;
@@ -93,10 +129,33 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   outletPort.rotation.y = Math.PI;
   group.add(outletPort);
 
-  // Frente: moldura, display e vidro.
-  const bezelMesh = mesh(new RoundedBoxGeometry(0.13, 0.092, 0.008, 3, 0.007), bezel);
-  bezelMesh.position.set(0, 0.086, 0.0525);
-  group.add(bezelMesh);
+  // Conector M12 por baixo — sem cabo: o medidor funciona com a bateria interna.
+  const m12 = new THREE.Group();
+  m12.position.y = -halfH;
+  const m12Hex = mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.006, 6), materials.steelPolished);
+  m12Hex.position.y = -0.003;
+  m12.add(m12Hex);
+  const thread: THREE.Vector2[] = [new THREE.Vector2(0.0001, -0.006), new THREE.Vector2(0.0082, -0.006)];
+  for (let i = 0; i < 9; i++) {
+    const y = -0.0065 - i * 0.0016;
+    thread.push(new THREE.Vector2(0.0092, y), new THREE.Vector2(0.0084, y - 0.0008));
+  }
+  thread.push(new THREE.Vector2(0.0084, -0.0215), new THREE.Vector2(0.0001, -0.0215));
+  const m12Body = mesh(new THREE.LatheGeometry(thread.reverse(), 32), materials.steelPolished);
+  m12.add(m12Body);
+  const m12Insert = new THREE.Mesh(new THREE.CircleGeometry(0.0062, 24), materials.gasket);
+  m12Insert.rotation.x = Math.PI / 2;
+  m12Insert.position.y = -0.0217;
+  m12.add(m12Insert);
+  group.add(m12);
+
+  // ——— Lateral: moldura, display e vidro ———
+  const frontZ = halfD;
+  const bezelMaterial = new THREE.MeshPhysicalMaterial({ name: 'picomag-moldura', color: 0x050608, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.05 });
+  xrayMaterials.push(bezelMaterial);
+  const bezel = mesh(new RoundedBoxGeometry(SCREEN.width + 0.0045, SCREEN.height + 0.0045, 0.003, 3, 0.0035), bezelMaterial, { cast: false });
+  bezel.position.set(SCREEN.x, SCREEN.y, frontZ + 0.0002);
+  group.add(bezel);
 
   const displayCanvas = document.createElement('canvas');
   displayCanvas.width = DISPLAY_SIZE.width;
@@ -107,61 +166,30 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   displayTexture.anisotropy = 8;
   const displayMaterial = new THREE.MeshBasicMaterial({ map: displayTexture, toneMapped: false });
   displayMaterial.color.setScalar(0.02);
-  const display = new THREE.Mesh(new THREE.PlaneGeometry(0.112, 0.07), displayMaterial);
-  display.position.set(0, 0.086, 0.0568);
+  const display = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN.width, SCREEN.height), displayMaterial);
+  display.position.set(SCREEN.x, SCREEN.y, frontZ + 0.0019);
   group.add(display);
-  // Brilho suave da retroiluminação em volta da tela.
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    map: glowTexture(),
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    opacity: 0,
-    toneMapped: false,
-  });
-  const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.105), glowMaterial);
-  glow.position.set(0, 0.086, 0.0578);
-  glow.renderOrder = 4;
-  group.add(glow);
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.122, 0.082), materials.glass);
-  glass.position.set(0, 0.086, 0.0574);
+  const glass = new THREE.Mesh(new RoundedBoxGeometry(SCREEN.width + 0.005, SCREEN.height + 0.005, 0.0006, 2, 0.0003), materials.glass);
+  glass.position.set(SCREEN.x, SCREEN.y, frontZ + 0.0024);
   glass.renderOrder = 3;
   group.add(glass);
 
-  // Impressão da carcaça.
-  const print = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.15, 0.06),
-    new THREE.MeshStandardMaterial({ map: faceplateTexture(), transparent: true, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }),
+  // Gravações: marca e nome na lateral, certificações e dados no topo.
+  const flatL = BODY.length - 2 * BODY.radius;
+  const sidePrint = new THREE.Mesh(
+    new THREE.PlaneGeometry(flatL, BODY.height - 2 * BODY.radius),
+    new THREE.MeshStandardMaterial({ map: sidePrintTexture(flatL, BODY.height - 2 * BODY.radius), transparent: true, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }),
   );
-  print.position.set(0, 0.004, 0.0542);
-  group.add(print);
-  xrayMaterials.push(print.material as THREE.Material);
-
-  // LED de status.
-  const ledMaterial = new THREE.MeshStandardMaterial({ color: 0x0f2a1d, emissive: 0x20d38a, emissiveIntensity: 0, roughness: 0.3 });
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.0032, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), ledMaterial);
-  led.rotation.x = Math.PI / 2;
-  led.position.set(0.054, 0.139, 0.0538);
-  group.add(led);
-
-  // Tampa da bateria no topo, com serrilhado.
-  const cap = new THREE.Group();
-  cap.position.set(0.02, 0.145, 0);
-  const capBody = mesh(new THREE.CylinderGeometry(0.022, 0.023, 0.012, 40), materials.steelSatin);
-  capBody.position.y = 0.006;
-  cap.add(capBody);
-  const ribGeometry = new THREE.BoxGeometry(0.003, 0.01, 0.004);
-  for (let i = 0; i < 28; i++) {
-    const a = (i / 28) * Math.PI * 2;
-    const rib = mesh(ribGeometry, materials.steelSatin, { cast: false });
-    rib.position.set(Math.cos(a) * 0.0228, 0.006, Math.sin(a) * 0.0228);
-    rib.rotation.y = -a;
-    cap.add(rib);
-  }
-  const capTop = mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.002, 32), materials.steelPolished);
-  capTop.position.y = 0.0125;
-  cap.add(capTop);
-  group.add(cap);
+  sidePrint.position.set(0, 0, frontZ + 0.00015);
+  group.add(sidePrint);
+  const topPrint = new THREE.Mesh(
+    new THREE.PlaneGeometry(flatL, BODY.depth - 2 * BODY.radius),
+    new THREE.MeshStandardMaterial({ map: topPrintTexture(), transparent: true, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }),
+  );
+  topPrint.rotation.x = -Math.PI / 2;
+  topPrint.position.set(0, halfH + 0.00015, 0);
+  group.add(topPrint);
+  xrayMaterials.push(sidePrint.material as THREE.Material, topPrint.material as THREE.Material);
 
   // ——— Interior (visível no modo raio-X) ———
   const internals = new THREE.Group();
@@ -182,18 +210,18 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   const shoeGeometry = new RoundedBoxGeometry(0.085, 0.004, 0.05, 2, 0.0015);
   for (const s of [1, -1]) {
     const coil = mesh(coilGeometry, materials.copper);
-    coil.position.y = s * 0.046;
+    coil.position.y = s * 0.04;
     internals.add(coil);
     const shoe = mesh(shoeGeometry, materials.steelSatin);
     shoe.position.y = s * 0.031;
     internals.add(shoe);
   }
   const electrodeMaterial = new THREE.MeshStandardMaterial({ color: 0xd8c27a, metalness: 1, roughness: 0.25, emissive: 0x36d6ff, emissiveIntensity: 0 });
-  const electrodeGeometry = new THREE.CylinderGeometry(0.0035, 0.0035, 0.014, 16);
+  const electrodeGeometry = new THREE.CylinderGeometry(0.0035, 0.0035, 0.01, 16);
   electrodeGeometry.rotateX(Math.PI / 2);
   for (const s of [1, -1]) {
     const e = new THREE.Mesh(electrodeGeometry, electrodeMaterial);
-    e.position.z = s * 0.029;
+    e.position.z = s * 0.028;
     internals.add(e);
   }
   // Linhas do campo magnético B (vertical), animadas.
@@ -228,27 +256,27 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
       internals.add(line);
     }
   }
-  // Placa eletrônica e bateria de lítio.
-  const pcb = mesh(new RoundedBoxGeometry(0.12, 0.07, 0.003, 2, 0.001), new THREE.MeshStandardMaterial({ color: 0x1f6b44, roughness: 0.6 }));
-  pcb.position.set(0, 0.088, 0.036);
+  // Placa eletrônica atrás do display e bateria de lítio na parte de trás.
+  const pcb = mesh(new RoundedBoxGeometry(0.11, 0.07, 0.003, 2, 0.001), new THREE.MeshStandardMaterial({ color: 0x1f6b44, roughness: 0.6 }));
+  pcb.position.set(SCREEN.x * 0.5, 0, 0.044);
   internals.add(pcb);
   for (let i = 0; i < 6; i++) {
     const chip = mesh(new THREE.BoxGeometry(0.012 + (i % 3) * 0.005, 0.008, 0.003), new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.5 }));
-    chip.position.set(-0.04 + (i % 3) * 0.035, 0.07 + Math.floor(i / 3) * 0.03, 0.0335);
+    chip.position.set(-0.035 + (i % 3) * 0.035, -0.018 + Math.floor(i / 3) * 0.036, 0.0415);
     internals.add(chip);
   }
-  const battery = mesh(cylinderX(0.0165, 0.07, -0.035, 32), new THREE.MeshPhysicalMaterial({ color: 0x1c4f8f, roughness: 0.35, clearcoat: 0.6 }));
-  battery.position.set(0, 0.12, -0.012);
+  const battery = mesh(cylinderX(0.0085, 0.08, -0.04, 32), new THREE.MeshPhysicalMaterial({ color: 0x1c4f8f, roughness: 0.35, clearcoat: 0.6 }));
+  battery.position.set(0, 0, -0.043);
   internals.add(battery);
-  const batteryCap = mesh(cylinderX(0.009, 0.005, 0.035, 20), materials.steelPolished);
-  batteryCap.position.set(0, 0.12, -0.012);
+  const batteryCap = mesh(cylinderX(0.0045, 0.004, 0.04, 20), materials.steelPolished);
+  batteryCap.position.set(0, 0, -0.043);
   internals.add(batteryCap);
 
   const displayAnchor = new THREE.Object3D();
-  displayAnchor.position.set(0, 0.14, 0.06);
+  displayAnchor.position.set(SCREEN.x, halfH + 0.012, halfD * 0.6);
   group.add(displayAnchor);
 
-  for (const child of [housing, bezelMesh, print, display, glass, capBody, led]) tagPick(child, pick);
+  for (const child of [housing, ring, bezel, sidePrint, topPrint, display, glass, m12]) tagPick(child, pick);
   tagPick(internals, pick);
 
   let lastDraw = -1;
@@ -259,20 +287,19 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
       displayTexture.needsUpdate = true;
       lastDraw = time;
     }
-    displayMaterial.color.setScalar(0.03 + brightness * 0.97);
-    glowMaterial.opacity = brightness * 0.22;
-    const blink = data.measuring ? (Math.sin(time * 6) > -0.2 ? 1 : 0.15) : data.mode === 'on' ? 0.35 : 0;
-    ledMaterial.emissiveIntensity = blink * 2.2;
+    displayMaterial.color.setScalar(0.02 + brightness * 0.98);
     fieldMaterial.uniforms.uTime.value = time;
     fieldMaterial.uniforms.uStrength.value = data.mode === 'sleep' ? 0.0 : 0.35 + 0.65 * Math.min(1, flowing);
     electrodeMaterial.emissiveIntensity = Math.min(1, flowing) * 1.5;
   };
 
+  const printMaterials = new Set<THREE.Material>([sidePrint.material as THREE.Material, topPrint.material as THREE.Material]);
   const setXray = (on: boolean) => {
     internals.visible = on;
     for (const material of xrayMaterials) {
-      material.transparent = on || material === print.material;
-      material.opacity = on ? (material === print.material ? 0.25 : 0.14) : 1;
+      const isPrint = printMaterials.has(material);
+      material.transparent = on || isPrint;
+      material.opacity = on ? (isPrint ? 0.3 : 0.14) : 1;
       material.depthWrite = !on;
       material.needsUpdate = true;
     }
@@ -282,55 +309,115 @@ export function createPicomag(materials: Materials, cache: GeometryCache, lightD
   return { group, inletPort, outletPort, displayAnchor, fluid, fluidMaterial, update, setXray };
 }
 
-function glowTexture(): THREE.CanvasTexture {
+const PRINT = '#4b5158';
+const FONT = '"Inter Variable", "Inter", system-ui, sans-serif';
+
+function printCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const element = document.createElement('canvas');
-  element.width = 256;
-  element.height = 180;
+  element.width = width;
+  element.height = height;
   const ctx = element.getContext('2d')!;
-  ctx.filter = 'blur(14px)';
-  ctx.fillStyle = 'rgba(120,200,255,0.9)';
-  ctx.beginPath();
-  ctx.roundRect(36, 30, 184, 120, 12);
-  ctx.fill();
-  const texture = new THREE.CanvasTexture(element);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
+  ctx.clearRect(0, 0, width, height);
+  return [element, ctx];
 }
 
-function faceplateTexture(): THREE.CanvasTexture {
-  const W = 900;
-  const H = 360;
-  const element = document.createElement('canvas');
-  element.width = W;
-  element.height = H;
-  const ctx = element.getContext('2d')!;
-  const font = '"Inter Variable", "Inter", system-ui, sans-serif';
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(255,255,255,0.94)';
-  ctx.font = `700 96px ${font}`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillText('Picomag', 60, 120);
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = `500 40px ${font}`;
-  ctx.fillText('DN50 · 2"   IP67', 64, 210);
-  ctx.fillText('Endress+Hauser', 64, 268);
-  // Seta do sentido do escoamento (da direita para a esquerda).
-  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.lineWidth = 12;
-  ctx.beginPath();
-  ctx.moveTo(840, 200);
-  ctx.lineTo(640, 200);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(600, 200);
-  ctx.lineTo(660, 160);
-  ctx.lineTo(660, 240);
-  ctx.closePath();
-  ctx.fill();
+function canvasTexture(element: HTMLCanvasElement): THREE.CanvasTexture {
   const texture = new THREE.CanvasTexture(element);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   return texture;
+}
+
+/** Marca acima do display e nome do aparelho abaixo dele (lateral). */
+function sidePrintTexture(planeWidth: number, planeHeight: number): THREE.CanvasTexture {
+  const scale = 12000; // pixels por metro
+  const W = Math.round(planeWidth * scale);
+  const H = Math.round(planeHeight * scale);
+  const [element, ctx] = printCanvas(W, H);
+  const toX = (x: number) => (x + planeWidth / 2) * scale;
+  const toY = (y: number) => (planeHeight / 2 - y) * scale;
+  const left = toX(SCREEN.x - SCREEN.width / 2);
+  const right = toX(SCREEN.x + SCREEN.width / 2);
+  const top = toY(SCREEN.y + SCREEN.height / 2);
+  const bottom = toY(SCREEN.y - SCREEN.height / 2);
+
+  ctx.fillStyle = PRINT;
+  ctx.textBaseline = 'alphabetic';
+  // Logotipo: caixa com as iniciais.
+  const box = 50;
+  const boxX = right - box;
+  const boxY = top - 58 - box;
+  ctx.fillRect(boxX, boxY, box, box);
+  ctx.fillStyle = '#e8ebee';
+  ctx.font = `800 34px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('EH', boxX + box / 2, boxY + box - 14);
+  ctx.fillStyle = PRINT;
+  ctx.font = `500 46px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('Endress+Hauser', boxX - 12, boxY + box - 8);
+
+  ctx.textAlign = 'left';
+  ctx.font = `500 48px ${FONT}`;
+  ctx.fillText('Picomag', left + 4, bottom + 92);
+  return canvasTexture(element);
+}
+
+/** Certificações e dados técnicos gravados no topo. */
+function topPrintTexture(): THREE.CanvasTexture {
+  const W = 1420;
+  const H = 860;
+  const [element, ctx] = printCanvas(W, H);
+  ctx.fillStyle = 'rgba(75,81,88,0.78)';
+  ctx.strokeStyle = 'rgba(75,81,88,0.78)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  // Linhas de dados da placa (o lado de baixo do canvas fica voltado para o display).
+  ctx.font = `500 30px ${FONT}`;
+  const lines = [
+    'Medidor de vazão eletromagnético · DN50 (2")',
+    'Faixa 0…42 m³/h · temperatura · condutividade',
+    'Conexões DIN 11851 · IP67',
+    'Alimentação: bateria interna de lítio',
+  ];
+  lines.forEach((line, i) => ctx.fillText(line, 70, 110 + i * 46));
+
+  ctx.font = `600 70px ${FONT}`;
+  ctx.fillText('CE', 70, 470);
+  // Símbolo de atenção.
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(250, 470);
+  ctx.lineTo(290, 405);
+  ctx.lineTo(330, 470);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.font = `700 40px ${FONT}`;
+  ctx.fillText('!', 283, 462);
+  ctx.font = `600 64px ${FONT}`;
+  ctx.fillText('EAC', 1180, 470);
+
+  // Bluetooth e IO-Link.
+  const bt = (x: number, y: number, s: number) => {
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - s * 0.4, y - s * 0.35);
+    ctx.lineTo(x + s * 0.35, y + s * 0.35);
+    ctx.lineTo(x, y + s * 0.7);
+    ctx.lineTo(x, y - s * 0.7);
+    ctx.lineTo(x + s * 0.35, y - s * 0.35);
+    ctx.lineTo(x - s * 0.4, y + s * 0.35);
+    ctx.stroke();
+  };
+  bt(110, 650, 34);
+  ctx.font = `500 58px ${FONT}`;
+  ctx.fillText('Bluetooth®', 160, 672);
+  ctx.beginPath();
+  ctx.arc(860, 650, 30, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillText('IO-Link', 905, 672);
+  return canvasTexture(element);
 }

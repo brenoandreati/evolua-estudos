@@ -1,4 +1,8 @@
-/** Tela do medidor desenhada num canvas 2D (vira textura no modelo 3D). */
+/**
+ * Tela do medidor desenhada num canvas 2D (vira textura no modelo 3D).
+ * Segue o visual do Picomag: fundo preto, cabeçalho "Picomag" com ícones de estado,
+ * vazão grande em branco e temperatura em azul.
+ */
 
 export interface DisplayData {
   mode: 'sleep' | 'boot' | 'on';
@@ -18,9 +22,12 @@ export interface DisplayData {
   time: number;
 }
 
-export const DISPLAY_SIZE = { width: 640, height: 400 };
+/** Proporção do display no aparelho (70 × 56 mm). */
+export const DISPLAY_SIZE = { width: 600, height: 480 };
 
 const FONT = '"Inter Variable", "Inter", system-ui, sans-serif';
+const WHITE = '#f4f7fa';
+const BLUE = '#2ba8f0';
 const number = (digits: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 const fmt2 = number(2);
@@ -43,13 +50,8 @@ export function formatInteger(value: number): string {
 export function drawDisplay(ctx: CanvasRenderingContext2D, data: DisplayData): void {
   const { width: W, height: H } = DISPLAY_SIZE;
   ctx.save();
-  ctx.clearRect(0, 0, W, H);
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#0b1824');
-  bg.addColorStop(1, '#050c13');
-  ctx.fillStyle = bg;
+  ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, W, H);
-
   if (data.mode === 'sleep') {
     ctx.restore();
     return;
@@ -60,188 +62,154 @@ export function drawDisplay(ctx: CanvasRenderingContext2D, data: DisplayData): v
     return;
   }
 
-  drawStatusBar(ctx, data);
+  drawHeader(ctx, data);
 
   // Vazão.
-  ctx.fillStyle = '#7f95a8';
-  ctx.font = `500 24px ${FONT}`;
-  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('Vazão', 30, 96);
-
+  ctx.textAlign = 'right';
   if (data.emptyPipe) {
-    ctx.fillStyle = '#4d6072';
-    ctx.font = `600 112px ${FONT}`;
-    ctx.textAlign = 'right';
-    ctx.fillText('– – , – –', 470, 196);
-    // Alerta de tubo vazio.
-    ctx.fillStyle = 'rgba(255,176,32,0.14)';
-    roundRect(ctx, 30, 214, W - 60, 46, 10);
-    ctx.fill();
+    ctx.fillStyle = '#5d6670';
+    ctx.font = `700 150px ${FONT}`;
+    ctx.fillText('– –,– –', 572, 236);
     ctx.fillStyle = '#ffb020';
-    ctx.font = `700 24px ${FONT}`;
+    ctx.font = `700 30px ${FONT}`;
     ctx.textAlign = 'left';
-    drawWarning(ctx, 48, 237);
-    ctx.fillText('TUBO VAZIO · aguardando produto', 84, 246);
+    drawWarning(ctx, 26, 112);
+    ctx.fillText('TUBO VAZIO', 66, 122);
   } else {
-    ctx.fillStyle = '#f2f7fb';
-    ctx.font = `600 116px ${FONT}`;
-    ctx.textAlign = 'right';
-    ctx.fillText(formatFlow(data.flow), 470, 196);
-    // Barra de escala 0–42 m³/h.
-    const x = 30;
-    const y = 222;
-    const w = W - 60;
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    roundRect(ctx, x, y, w, 18, 9);
-    ctx.fill();
-    const f = Math.min(1, data.flow / data.maxFlow);
-    if (f > 0.002) {
-      const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-      grad.addColorStop(0, '#18c7a6');
-      grad.addColorStop(0.75, '#36d6ff');
-      grad.addColorStop(1, '#ff6b5a');
-      ctx.fillStyle = grad;
-      roundRect(ctx, x, y, Math.max(18, w * f), 18, 9);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#5f7488';
-    ctx.font = `500 18px ${FONT}`;
-    ctx.textAlign = 'left';
-    ctx.fillText('0', x, y + 40);
-    ctx.textAlign = 'right';
-    ctx.fillText(`${formatInteger(data.maxFlow)} m³/h`, x + w, y + 40);
-    ctx.textAlign = 'center';
-    ctx.fillText(formatInteger(data.maxFlow / 2), x + w / 2, y + 40);
+    ctx.fillStyle = WHITE;
+    ctx.font = `700 168px ${FONT}`;
+    ctx.fillText(formatFlow(data.flow), 574, 238);
   }
-  ctx.fillStyle = '#9fb3c4';
-  ctx.font = `500 38px ${FONT}`;
+  ctx.fillStyle = WHITE;
+  ctx.font = `500 50px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('m³/h', 572, 300);
+
+  // Produto na linha, discreto, à esquerda da unidade.
   ctx.textAlign = 'left';
-  ctx.fillText('m³/h', 486, 196);
+  ctx.fillStyle = data.lineColor;
+  ctx.beginPath();
+  ctx.arc(36, 286, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#9aa5b0';
+  ctx.font = `600 28px ${FONT}`;
+  ctx.fillText(data.line, 54, 296);
 
-  // Linha divisória e leituras secundárias.
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.fillRect(30, 282, W - 60, 2);
+  // Separador.
+  ctx.fillStyle = 'rgba(244,247,250,0.85)';
+  ctx.fillRect(26, 322, W - 52, 4);
 
+  // Temperatura em azul, com "°C" empilhado à direita.
+  ctx.fillStyle = BLUE;
+  ctx.textAlign = 'right';
+  ctx.font = `700 140px ${FONT}`;
+  ctx.fillText(formatTemperature(data.temperature), 506, 458);
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#7f95a8';
-  ctx.font = `500 20px ${FONT}`;
-  ctx.fillText('Temperatura', 30, 314);
-  ctx.fillText('Totalizador Σ', 340, 314);
-  ctx.fillStyle = '#e8eff5';
-  ctx.font = `600 42px ${FONT}`;
-  ctx.fillText(`${formatTemperature(data.temperature)} °C`, 30, 358);
-  ctx.fillText(`${formatTotal(data.totalizer)} L`, 340, 358);
-
-  ctx.fillStyle = '#62788c';
-  ctx.font = `500 19px ${FONT}`;
-  const kappa = Number.isNaN(data.conductivity) ? '– – –' : formatInteger(data.conductivity);
-  ctx.fillText(`κ ${kappa} µS/cm`, 30, 388);
-  ctx.fillText(`v ${fmt2.format(data.velocity)} m/s`, 340, 388);
+  ctx.font = `600 52px ${FONT}`;
+  ctx.fillText('°', 520, 392);
+  ctx.fillText('C', 516, 456);
   ctx.restore();
 }
 
-function drawStatusBar(ctx: CanvasRenderingContext2D, data: DisplayData) {
-  const { width: W } = DISPLAY_SIZE;
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.fillRect(0, 0, W, 52);
+function drawHeader(ctx: CanvasRenderingContext2D, data: DisplayData) {
+  ctx.fillStyle = WHITE;
+  ctx.font = `600 44px ${FONT}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('Picomag', 26, 62);
 
   // Bluetooth.
-  ctx.strokeStyle = '#5fb4ff';
-  ctx.lineWidth = 3.2;
+  ctx.strokeStyle = WHITE;
+  ctx.lineWidth = 3.4;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(24, 17);
-  ctx.lineTo(40, 33);
-  ctx.lineTo(32, 41);
-  ctx.lineTo(32, 11);
-  ctx.lineTo(40, 19);
-  ctx.lineTo(24, 35);
+  ctx.moveTo(352, 28);
+  ctx.lineTo(370, 46);
+  ctx.lineTo(361, 55);
+  ctx.lineTo(361, 19);
+  ctx.lineTo(370, 28);
+  ctx.lineTo(352, 46);
   ctx.stroke();
 
-  // Linha ativa.
-  ctx.font = `700 22px ${FONT}`;
-  const text = data.line;
-  const tw = ctx.measureText(text).width;
-  ctx.fillStyle = data.lineColor;
-  roundRect(ctx, 62, 12, tw + 28, 30, 15);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, 76, 28);
-
-  // Indicador de medição.
-  if (data.measuring) {
-    const on = Math.sin(data.time * 6) > -0.2;
-    ctx.fillStyle = on ? '#20d38a' : 'rgba(32,211,138,0.25)';
-    ctx.beginPath();
-    ctx.arc(62 + tw + 52, 27, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#9fe9c8';
-    ctx.font = `600 20px ${FONT}`;
-    ctx.fillText('MEDINDO', 62 + tw + 66, 28);
+  // Onda: pulsa enquanto mede.
+  const amplitude = data.measuring ? 7 + Math.sin(data.time * 8) * 2 : 5;
+  ctx.beginPath();
+  for (let i = 0; i <= 28; i++) {
+    const x = 388 + i;
+    const y = 37 - Math.sin((i / 28) * Math.PI * 2) * amplitude;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
-
-  // Bateria.
-  const bx = W - 92;
-  ctx.strokeStyle = '#cfdbe6';
-  ctx.lineWidth = 2.5;
-  roundRect(ctx, bx, 16, 44, 22, 4);
   ctx.stroke();
-  ctx.fillStyle = '#cfdbe6';
-  ctx.fillRect(bx + 44, 22, 4, 10);
-  ctx.fillStyle = '#20d38a';
-  roundRect(ctx, bx + 3.5, 19.5, 37 * (data.battery / 100), 15, 2);
-  ctx.fill();
-  ctx.fillStyle = '#9fb3c4';
-  ctx.font = `500 18px ${FONT}`;
+
+  // Estado: verde com o tubo cheio, âmbar com o tubo vazio.
+  ctx.fillStyle = data.emptyPipe ? '#ffb020' : '#2fc24f';
+  ctx.fillRect(428, 20, 34, 34);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  if (data.emptyPipe) {
+    ctx.moveTo(445, 27);
+    ctx.lineTo(445, 40);
+    ctx.moveTo(445, 46);
+    ctx.lineTo(445, 47);
+  } else {
+    ctx.moveTo(435, 37);
+    ctx.lineTo(443, 45);
+    ctx.lineTo(456, 28);
+  }
+  ctx.stroke();
+
+  // Bateria interna.
+  ctx.strokeStyle = WHITE;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(478, 24, 54, 26);
+  ctx.fillStyle = WHITE;
+  ctx.fillRect(532, 31, 5, 12);
+  ctx.fillStyle = '#2fc24f';
+  ctx.fillRect(482, 28, 46 * (data.battery / 100), 18);
+  ctx.fillStyle = '#9aa5b0';
+  ctx.font = `500 22px ${FONT}`;
   ctx.textAlign = 'right';
-  ctx.fillText(`${formatInteger(data.battery)}%`, bx - 8, 28);
-  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(`${formatInteger(data.battery)}%`, 574, 74);
+
+  ctx.fillStyle = 'rgba(244,247,250,0.85)';
+  ctx.fillRect(26, 82, 300, 3);
 }
 
 function drawBoot(ctx: CanvasRenderingContext2D, data: DisplayData) {
-  const { width: W, height: H } = DISPLAY_SIZE;
+  const { width: W } = DISPLAY_SIZE;
   ctx.globalAlpha = Math.min(1, data.boot * 4);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#f2f7fb';
-  ctx.font = `700 74px ${FONT}`;
-  ctx.fillText('Picomag', W / 2, 170);
-  ctx.fillStyle = '#7f95a8';
-  ctx.font = `500 26px ${FONT}`;
-  ctx.fillText('DN50 · 2" · bateria interna', W / 2, 214);
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  roundRect(ctx, 120, 262, W - 240, 12, 6);
-  ctx.fill();
-  ctx.fillStyle = '#36d6ff';
-  roundRect(ctx, 120, 262, Math.max(12, (W - 240) * data.boot), 12, 6);
-  ctx.fill();
-  ctx.fillStyle = '#62788c';
-  ctx.font = `500 22px ${FONT}`;
+  ctx.fillStyle = WHITE;
+  ctx.font = `700 96px ${FONT}`;
+  ctx.fillText('Picomag', W / 2, 200);
+  ctx.fillStyle = '#9aa5b0';
+  ctx.font = `500 30px ${FONT}`;
+  ctx.fillText('DN50 · bateria interna', W / 2, 252);
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ctx.fillRect(110, 300, W - 220, 14);
+  ctx.fillStyle = BLUE;
+  ctx.fillRect(110, 300, (W - 220) * data.boot, 14);
+  ctx.fillStyle = '#9aa5b0';
+  ctx.font = `500 28px ${FONT}`;
   const step = data.boot < 0.35 ? 'Autoteste…' : data.boot < 0.7 ? 'Bobinas OK · eletrodos OK' : 'Bluetooth pronto';
-  ctx.fillText(step, W / 2, 318);
+  ctx.fillText(step, W / 2, 372);
   ctx.globalAlpha = 1;
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.fillRect(0, H - 4, W * data.boot, 4);
 }
 
 function drawWarning(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.beginPath();
-  ctx.moveTo(x + 13, y - 13);
-  ctx.lineTo(x + 27, y + 13);
-  ctx.lineTo(x - 1, y + 13);
+  ctx.moveTo(x + 15, y - 4);
+  ctx.lineTo(x + 31, y + 24);
+  ctx.lineTo(x - 1, y + 24);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = '#1a1206';
-  ctx.fillRect(x + 11.5, y - 4, 3, 10);
-  ctx.fillRect(x + 11.5, y + 8, 3, 3);
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(x + 13.5, y + 5, 3, 10);
+  ctx.fillRect(x + 13.5, y + 18, 3, 3);
   ctx.fillStyle = '#ffb020';
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
 }

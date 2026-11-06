@@ -161,7 +161,9 @@ e a tela do medidor são gerados no próprio navegador.
   pressão de gás — sem bomba e sem cabos) e válvula de alívio.
 - **Mangueiras cristal de 2"** com espiral de aço e **uniões sanitárias DIN 11851 DN50** (macho roscado, porca
   ranhurada e espigão prensado) levam o produto a um manifold com duas válvulas e daí ao medidor.
-- **Medidor eletromagnético compacto** (representação de um Picomag DN50) com **bateria interna**: o display
+- **Medidor eletromagnético compacto** no formato do Picomag DN50 — corpo de inox escovado com anel azul,
+  display colorido na lateral, marcações gravadas no topo, sextavados nas conexões e conector M12 por baixo
+  (sem cabo) — com **bateria interna**: o display
   acorda, faz o autoteste, indica “tubo vazio” enquanto a linha enche e passa a mostrar **vazão (até
   42 m³/h)**, **temperatura**, totalizador, condutividade e velocidade, atualizados em tempo real.
 - A **mangueira de saída** termina numa bica com suporte sobre um ralo linear, onde cai o jato.

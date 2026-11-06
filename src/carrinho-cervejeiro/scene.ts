@@ -206,9 +206,21 @@ function addMeterMount(meter: THREE.Group, materials: Materials) {
   const plate = mesh(new RoundedBoxGeometry(0.22, 0.006, 0.13, 2, 0.002), materials.steelSatin);
   plate.position.set(0, shelfTop + 0.003, 0);
   meter.add(plate);
-  const block = mesh(new RoundedBoxGeometry(0.12, -0.055 - (shelfTop + 0.006) + 0.004, 0.075, 2, 0.003), materials.steelSatin);
-  block.position.set(0, (shelfTop + 0.006 - 0.055) / 2, 0);
-  meter.add(block);
+  // Dois apoios sob os sextavados: o espaço sob o corpo fica livre para o conector M12.
+  const postTop = -0.0345;
+  const postHeight = postTop - (shelfTop + 0.006);
+  const post = new RoundedBoxGeometry(0.014, postHeight, 0.05, 2, 0.003);
+  const cradle = new THREE.TorusGeometry(0.0375, 0.0035, 8, 24, Math.PI / 3);
+  cradle.rotateZ(Math.PI + Math.PI / 3);
+  cradle.rotateY(Math.PI / 2);
+  for (const x of [-0.0835, 0.0835]) {
+    const p = mesh(post, materials.steelSatin);
+    p.position.set(x, shelfTop + 0.006 + postHeight / 2, 0);
+    meter.add(p);
+    const c = mesh(cradle, materials.steelSatin);
+    c.position.set(x, 0, 0);
+    meter.add(c);
+  }
   const nut = new THREE.CylinderGeometry(0.006, 0.006, 0.006, 6);
   for (const x of [-0.09, 0.09]) {
     for (const z of [-0.045, 0.045]) {
